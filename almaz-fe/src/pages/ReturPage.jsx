@@ -2,18 +2,16 @@ import { useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import {
   fmtTanggal,
-  currentMonth,
-  fmtBulan,
-  filterByMonth,
+  filterByDateRange,
+  defaultDateRange,
   sortByDateDesc,
-  getAvailableMonths,
   downloadExcel,
 } from "../utils";
 import { PAGE_SIZE } from "../data";
 import {
   Card,
   PageHeader,
-  MonthFilter,
+  DateFilter,
   DownloadButton,
   PrimaryButton,
   Field,
@@ -39,20 +37,21 @@ export default function ReturPage({
   const [mode, setMode] = useState(null);
   const [editing, setEditing] = useState(null);
   const [detail, setDetail] = useState(null);
-  const [bulan, setBulan] = useState(currentMonth());
-
-  const months = useMemo(() => getAvailableMonths(retur), [retur]);
-
+  const [dateRange, setDateRange] = useState(defaultDateRange("bulan_ini"));
   const [tokoFilter, setTokoFilter] = useState("");
+  const [salesFilter, setSalesFilter] = useState("");
 
   const rows = useMemo(() => {
-    let filtered = filterByMonth(retur, bulan);
+    let filtered = filterByDateRange(retur, dateRange);
     if (tokoFilter) filtered = filtered.filter((r) => r.toko === tokoFilter);
+    if (salesFilter) filtered = filtered.filter((r) => r.sales === salesFilter);
     return sortByDateDesc(filtered);
-  }, [retur, bulan, tokoFilter]);
+  }, [retur, dateRange, tokoFilter, salesFilter]);
 
   const handleDownload = () => {
-    const label = bulan || "semua-bulan";
+    const label = dateRange?.start ? `${dateRange.start}_${dateRange.end}` : "semua-waktu";
+    const tLabel = tokoFilter ? `-${tokoFilter.replace(/\s+/g, '_').toLowerCase()}` : "";
+    const sLabel = salesFilter ? `-${salesFilter.replace(/\s+/g, '_').toLowerCase()}` : "";
     const flat = rows.flatMap((r) =>
       r.items.map((it) => ({
         tanggal: r.tanggal,
@@ -63,7 +62,7 @@ export default function ReturPage({
         alasan: r.alasan || "",
       }))
     );
-    downloadExcel(flat, `retur-${label}`, [
+    downloadExcel(flat, `retur${tLabel}${sLabel}-${label}`, [
       { label: "Tanggal", value: (r) => r.tanggal },
       { label: "Toko",    value: (r) => r.toko },
       { label: "Sales",   value: (r) => r.sales },
@@ -86,7 +85,7 @@ export default function ReturPage({
       <PageHeader
         title="Retur"
         subtitle={`Daftar barang yang dikembalikan dari toko${
-          bulan ? ` — ${fmtBulan(bulan)}` : " — semua bulan"
+          dateRange?.start ? ` — ${fmtTanggal(dateRange.start)} s/d ${fmtTanggal(dateRange.end)}` : " — semua waktu"
         }${tokoFilter ? ` (${tokoFilter})` : ""}.`}
         action={
           <div className="flex flex-wrap items-center gap-2">
@@ -100,8 +99,8 @@ export default function ReturPage({
 
       <div className="flex flex-wrap items-center gap-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-neutral-600">Bulan:</label>
-          <MonthFilter value={bulan} onChange={setBulan} months={months} />
+          <label className="text-sm font-medium text-neutral-600">Waktu:</label>
+          <DateFilter value={dateRange} onChange={setDateRange} />
         </div>
         <div className="flex items-center gap-3">
           <label className="text-sm font-medium text-neutral-600">Toko:</label>
@@ -117,11 +116,25 @@ export default function ReturPage({
             />
           </div>
         </div>
+        <div className="flex items-center gap-3">
+          <label className="text-sm font-medium text-neutral-600">Sales:</label>
+          <div className="w-48">
+            <SearchableSelect
+              value={salesFilter}
+              onChange={(e) => setSalesFilter(e.target.value)}
+              placeholder="Semua Sales"
+              options={[
+                { value: "", label: "Semua Sales" },
+                ...salesList.map((s) => ({ value: s.nama, label: s.nama })),
+              ]}
+            />
+          </div>
+        </div>
       </div>
 
       <Card>
         <DataTable
-          key={`${bulan}-${tokoFilter}`}
+          key={`${dateRange?.start}-${dateRange?.end}-${tokoFilter}-${salesFilter}`}
           pageSize={PAGE_SIZE}
           columns={[
             { key: "no",      label: "No",      render: (_, idx) => idx + 1 },
@@ -166,12 +179,12 @@ export default function ReturPage({
             },
           ]}
           rows={rows}
-          empty={bulan ? `Tidak ada retur di ${fmtBulan(bulan)}.` : "Belum ada retur."}
+          empty={dateRange?.start ? `Tidak ada retur dari ${fmtTanggal(dateRange.start)} s/d ${fmtTanggal(dateRange.end)}.` : "Belum ada retur."}
         />
       </Card>
 
       {detail && (
-        <Modal title="Detail Retur" onClose={() => setDetail(null)} width="max-w-lg">
+        <Modal title="Detail Retur" onClose={() => setDetail(null)} width="max-w-4xl">
           <ReturDetail record={detail} />
         </Modal>
       )}
@@ -180,7 +193,7 @@ export default function ReturPage({
         <Modal
           title={mode === "add" ? "Input Retur" : "Edit Retur"}
           onClose={close}
-          width="max-w-2xl"
+          width="max-w-4xl"
         >
           <ReturForm
             initial={editing}
@@ -285,12 +298,15 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
       (r) => r.tanggal === tanggal && r.toko === toko && r.id !== initial?.id
     );
 
+  const validItems = items.filter((it) => it.rokok && Number(it.qty) > 0);
+
   const valid =
     !isDuplicate &&
     tanggal &&
     toko &&
-    items.length > 0 &&
-    items.every((it) => it.rokok && Number(it.qty) > 0);
+    sales &&
+    alasan.trim().length > 0 &&
+    validItems.length > 0;
 
   const submit = (e) => {
     e.preventDefault();
@@ -300,7 +316,7 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
       toko,
       sales,
       alasan: alasan.trim(),
-      items: items.map((it) => ({ rokok: it.rokok, qty: Number(it.qty) })),
+      items: validItems.map((it) => ({ rokok: it.rokok, qty: Number(it.qty) })),
     });
   };
 
@@ -316,7 +332,7 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
             required
           />
         </Field>
-        <Field label="Sales (opsional)">
+        <Field label="Sales">
           <SearchableSelect
             value={sales}
             onChange={(e) => setSales(e.target.value)}
@@ -355,7 +371,7 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
                   <SelectInput
                     value={item.rokok}
                     onChange={(e) => updateItem(idx, "rokok", e.target.value)}
-                    required
+                    required={idx === 0}
                   >
                     <option value="">Pilih rokok</option>
                     {rokokList.map((r) => (
@@ -375,7 +391,7 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
                     onChange={(e) => updateItem(idx, "qty", e.target.value)}
                     placeholder="0"
                     className={inputCls}
-                    required
+                    required={idx === 0}
                   />
                 </Field>
               </div>
@@ -396,13 +412,14 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
         </button>
       </div>
 
-      <Field label="Alasan (opsional)">
+      <Field label="Alasan">
         <input
           type="text"
           value={alasan}
           onChange={(e) => setAlasan(e.target.value)}
           placeholder="Misal: Tidak laku, Rusak, Kadaluarsa..."
           className={inputCls}
+          required
         />
       </Field>
 

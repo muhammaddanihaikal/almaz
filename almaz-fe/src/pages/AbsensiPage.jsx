@@ -2,18 +2,16 @@ import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import {
   fmtTanggal,
-  currentMonth,
-  fmtBulan,
-  filterByMonth,
+  filterByDateRange,
+  defaultDateRange,
   sortByDateDesc,
-  getAvailableMonths,
   downloadExcel,
 } from "../utils";
 import { PAGE_SIZE } from "../data";
 import {
   Card,
   PageHeader,
-  MonthFilter,
+  DateFilter,
   DownloadButton,
   PrimaryButton,
   Field,
@@ -54,11 +52,9 @@ export default function AbsensiPage({ absensiList, salesList, onSave, onDelete }
   const [mode, setMode] = useState(null);
   const [editingTanggal, setEditingTanggal] = useState(null);
   const [detail, setDetail] = useState(null);
-  const [bulan, setBulan] = useState(currentMonth());
+  const [dateRange, setDateRange] = useState(defaultDateRange("minggu_ini"));
 
-  const months = useMemo(() => getAvailableMonths(absensiList), [absensiList]);
-
-  const filteredFlat = useMemo(() => filterByMonth(absensiList, bulan), [absensiList, bulan]);
+  const filteredFlat = useMemo(() => filterByDateRange(absensiList, dateRange), [absensiList, dateRange]);
 
   const rows = useMemo(() => {
     const grouped = groupByDate(filteredFlat);
@@ -66,7 +62,7 @@ export default function AbsensiPage({ absensiList, salesList, onSave, onDelete }
   }, [filteredFlat]);
 
   const handleDownload = () => {
-    const label = bulan || "semua-bulan";
+    const label = dateRange?.start ? `${dateRange.start}_${dateRange.end}` : "semua-waktu";
     const flat = rows.flatMap((row) =>
       row.records.map((rec) => {
         const s = salesList.find((s) => s.id === rec.sales_id);
@@ -97,7 +93,7 @@ export default function AbsensiPage({ absensiList, salesList, onSave, onDelete }
     <div className="space-y-6">
       <PageHeader
         title="Absensi Sales"
-        subtitle={`Rekap kehadiran sales harian${bulan ? ` — ${fmtBulan(bulan)}` : " — semua bulan"}.`}
+        subtitle={`Rekap kehadiran sales harian${dateRange?.start ? ` — ${fmtTanggal(dateRange.start)} s/d ${fmtTanggal(dateRange.end)}` : " — semua waktu"}.`}
         action={
           <div className="flex flex-wrap items-center gap-2">
             <DownloadButton onClick={handleDownload} disabled={!rows.length} />
@@ -110,14 +106,14 @@ export default function AbsensiPage({ absensiList, salesList, onSave, onDelete }
 
       <div className="flex flex-wrap items-center gap-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-neutral-600">Bulan:</label>
-          <MonthFilter value={bulan} onChange={setBulan} months={months} />
+          <label className="text-sm font-medium text-neutral-600">Waktu:</label>
+          <DateFilter value={dateRange} onChange={setDateRange} />
         </div>
       </div>
 
       <Card>
         <DataTable
-          key={bulan}
+          key={`${dateRange?.start}-${dateRange?.end}`}
           pageSize={PAGE_SIZE}
           columns={[
             { key: "no",      label: "No",      render: (_, idx) => idx + 1 },
@@ -158,13 +154,13 @@ export default function AbsensiPage({ absensiList, salesList, onSave, onDelete }
             },
           ]}
           rows={rows}
-          empty={bulan ? `Tidak ada absensi di ${fmtBulan(bulan)}.` : "Belum ada data absensi."}
+          empty={dateRange?.start ? `Tidak ada absensi dari ${fmtTanggal(dateRange.start)} s/d ${fmtTanggal(dateRange.end)}.` : "Belum ada data absensi."}
         />
       </Card>
 
       {/* Detail modal */}
       {detail && (
-        <Modal title={`Detail Absensi — ${fmtTanggal(detail.tanggal)}`} onClose={() => setDetail(null)} width="max-w-md">
+        <Modal title={`Detail Absensi — ${fmtTanggal(detail.tanggal)}`} onClose={() => setDetail(null)} width="max-w-2xl">
           <div className="space-y-2">
             {detail.records.map((rec) => {
               const s = salesList.find((s) => s.id === rec.sales_id);
@@ -189,7 +185,7 @@ export default function AbsensiPage({ absensiList, salesList, onSave, onDelete }
         <Modal
           title={mode === "add" ? "Input Absensi" : `Edit Absensi — ${fmtTanggal(editingTanggal)}`}
           onClose={close}
-          width="max-w-lg"
+          width="max-w-3xl"
         >
           <AbsensiForm
             tanggal={editingTanggal}

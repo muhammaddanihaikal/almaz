@@ -6,8 +6,10 @@ import {
   Eye,
   Pencil,
   Trash2,
+  ChevronRight,
+  CalendarDays,
 } from "lucide-react";
-import { fmtBulan } from "../utils";
+import { getDateRanges } from "../utils";
 
 export const inputCls =
   "w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none transition focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10";
@@ -161,80 +163,64 @@ export function PrimaryButton({ onClick, icon: Icon, children }) {
   );
 }
 
-export function MonthFilter({ value, onChange }) {
-  const [year, monthStr] = value ? value.split('-') : ['', ''];
-  const month = monthStr || '';
-
-  const handleMonthChange = (newMonth) => {
-    if (!newMonth) {
-      onChange(year ? year : '');
+export function DateFilter({ value, onChange }) {
+  const handlePresetChange = (e) => {
+    const preset = e.target.value;
+    if (preset === 'custom') {
+      onChange({ preset: 'custom', start: value?.start || '', end: value?.end || '' });
+    } else if (preset === 'semua') {
+      onChange({ preset: 'semua', start: '', end: '' });
     } else {
-      const y = year || new Date().getFullYear().toString();
-      onChange(`${y}-${newMonth}`);
+      const ranges = getDateRanges();
+      onChange({ preset, ...ranges[preset] });
     }
   };
 
-  const handleYearChange = (newYear) => {
-    if (!newYear) {
-      onChange('');
-    } else {
-      onChange(month ? `${newYear}-${month}` : newYear);
-    }
+  const handleCustomChange = (field, val) => {
+    onChange({ preset: 'custom', start: value?.start || '', end: value?.end || '', [field]: val });
   };
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <div className="relative">
-        <Calendar
+        <CalendarDays
           className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
           strokeWidth={2}
         />
         <select
-          value={month}
-          onChange={(e) => handleMonthChange(e.target.value)}
+          value={value?.preset || 'semua'}
+          onChange={handlePresetChange}
           className="h-[38px] cursor-pointer appearance-none rounded-lg border border-neutral-200 bg-white pl-9 pr-8 text-sm font-medium text-neutral-800 outline-none transition hover:border-neutral-300 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
         >
-          <option value="">Bulan</option>
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => {
-            const monthStr = String(m).padStart(2, '0');
-            return (
-              <option key={m} value={monthStr}>
-                {fmtBulan(`2026-${monthStr}`).split(' ')[0]}
-              </option>
-            );
-          })}
+          <option value="semua">Semua Waktu</option>
+          <option value="hari_ini">Hari Ini</option>
+          <option value="minggu_ini">Minggu Ini</option>
+          <option value="bulan_ini">Bulan Ini</option>
+          <option value="custom">Kustom...</option>
         </select>
         <svg
           className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
           viewBox="0 0 20 20"
           fill="currentColor"
-          aria-hidden="true"
         >
           <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.06l3.71-3.83a.75.75 0 1 1 1.08 1.04l-4.25 4.39a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06z" />
         </svg>
       </div>
 
-      <div className="relative">
-        <select
-          value={year}
-          onChange={(e) => handleYearChange(e.target.value)}
-          className="h-[38px] cursor-pointer appearance-none rounded-lg border border-neutral-200 bg-white px-3 pr-8 text-sm font-medium text-neutral-800 outline-none transition hover:border-neutral-300 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
-        >
-          <option value="">Tahun</option>
-          {[2026, 2027, 2028, 2029, 2030].map((y) => (
-            <option key={y} value={String(y)}>
-              {y}
-            </option>
-          ))}
-        </select>
-        <svg
-          className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-          aria-hidden="true"
-        >
-          <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.06l3.71-3.83a.75.75 0 1 1 1.08 1.04l-4.25 4.39a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06z" />
-        </svg>
+      <div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-2 py-1">
+        <input
+          type="date"
+          value={value?.start || ''}
+          onChange={(e) => handleCustomChange('start', e.target.value)}
+          className="h-[28px] border-none bg-transparent text-sm font-medium text-neutral-800 outline-none"
+        />
+        <span className="text-sm font-medium text-neutral-400">-</span>
+        <input
+          type="date"
+          value={value?.end || ''}
+          onChange={(e) => handleCustomChange('end', e.target.value)}
+          className="h-[28px] border-none bg-transparent text-sm font-medium text-neutral-800 outline-none"
+        />
       </div>
     </div>
   );

@@ -75,19 +75,36 @@ export default function RokokPage({ rokokList, onAdd, onUpdate, onDelete }) {
               render: (r) => fmtIDR(r.harga_beli),
             },
             {
-              key: "harga_jual",
-              label: "Harga Jual",
-              align: "right",
-              render: (r) => fmtIDR(r.harga_jual),
-            },
-            {
-              key: "margin",
-              label: "Margin",
+              key: "harga_grosir",
+              label: "Grosir",
               align: "right",
               render: (r) => (
-                <span className="font-medium text-neutral-900">
-                  {fmtIDR(r.harga_jual - r.harga_beli)}
-                </span>
+                <div>
+                  <div>{fmtIDR(r.harga_grosir)}</div>
+                  <div className="text-xs text-neutral-500 font-medium">{fmtIDR(r.harga_grosir - r.harga_beli)}</div>
+                </div>
+              ),
+            },
+            {
+              key: "harga_toko",
+              label: "Toko",
+              align: "right",
+              render: (r) => (
+                <div>
+                  <div>{fmtIDR(r.harga_toko)}</div>
+                  <div className="text-xs text-neutral-500 font-medium">{fmtIDR(r.harga_toko - r.harga_beli)}</div>
+                </div>
+              ),
+            },
+            {
+              key: "harga_perorangan",
+              label: "Perorangan",
+              align: "right",
+              render: (r) => (
+                <div>
+                  <div>{fmtIDR(r.harga_perorangan)}</div>
+                  <div className="text-xs text-neutral-500 font-medium">{fmtIDR(r.harga_perorangan - r.harga_beli)}</div>
+                </div>
               ),
             },
             {
@@ -132,26 +149,29 @@ export default function RokokPage({ rokokList, onAdd, onUpdate, onDelete }) {
 
 function RokokForm({ initial, onSubmit, onCancel }) {
   const [nama, setNama] = useState(initial?.nama || "");
-  const [hargaBeli, setHargaBeli] = useState(
-    initial?.harga_beli?.toString() || ""
-  );
-  const [hargaJual, setHargaJual] = useState(
-    initial?.harga_jual?.toString() || ""
-  );
+  const [hargaBeli, setHargaBeli] = useState(initial?.harga_beli?.toString() || "");
+  const [hargaGrosir, setHargaGrosir] = useState(initial?.harga_grosir?.toString() || "");
+  const [hargaToko, setHargaToko] = useState(initial?.harga_toko?.toString() || "");
+  const [hargaPerorangan, setHargaPerorangan] = useState(initial?.harga_perorangan?.toString() || "");
   const [stok, setStok] = useState(initial?.stok?.toString() || "0");
 
   const hb = Number(hargaBeli);
-  const hj = Number(hargaJual);
+  const hg = Number(hargaGrosir);
+  const ht = Number(hargaToko);
+  const hp = Number(hargaPerorangan);
+
   const valid =
     nama.trim().length > 0 &&
     hargaBeli !== "" &&
-    hargaJual !== "" &&
+    hargaGrosir !== "" &&
+    hargaToko !== "" &&
+    hargaPerorangan !== "" &&
     hb >= 0 &&
-    hj >= 0 &&
+    hg >= hb &&
+    ht >= hb &&
+    hp >= hb &&
     stok !== "" &&
     Number(stok) >= 0;
-
-  const margin = valid ? hj - hb : 0;
 
   const submit = (e) => {
     e.preventDefault();
@@ -159,7 +179,9 @@ function RokokForm({ initial, onSubmit, onCancel }) {
     onSubmit({
       nama: nama.trim(),
       harga_beli: hb,
-      harga_jual: hj,
+      harga_grosir: hg,
+      harga_toko: ht,
+      harga_perorangan: hp,
       stok: Number(stok),
     });
   };
@@ -189,12 +211,34 @@ function RokokForm({ initial, onSubmit, onCancel }) {
             required
           />
         </Field>
-        <Field label="Harga Jual">
+        <Field label="Grosir">
           <input
             type="number"
             min="0"
-            value={hargaJual}
-            onChange={(e) => setHargaJual(e.target.value)}
+            value={hargaGrosir}
+            onChange={(e) => setHargaGrosir(e.target.value)}
+            placeholder="0"
+            className={inputCls}
+            required
+          />
+        </Field>
+        <Field label="Toko">
+          <input
+            type="number"
+            min="0"
+            value={hargaToko}
+            onChange={(e) => setHargaToko(e.target.value)}
+            placeholder="0"
+            className={inputCls}
+            required
+          />
+        </Field>
+        <Field label="Perorangan">
+          <input
+            type="number"
+            min="0"
+            value={hargaPerorangan}
+            onChange={(e) => setHargaPerorangan(e.target.value)}
             placeholder="0"
             className={inputCls}
             required
@@ -212,18 +256,9 @@ function RokokForm({ initial, onSubmit, onCancel }) {
           required
         />
       </Field>
-      {valid && (
-        <div
-          className={
-            "rounded-lg border px-3 py-2 text-xs " +
-            (margin < 0
-              ? "border-red-200 bg-red-50 text-red-700"
-              : "border-neutral-200 bg-neutral-50 text-neutral-600")
-          }
-        >
-          Margin per unit:{" "}
-          <span className="font-semibold">{fmtIDR(margin)}</span>
-          {margin < 0 && " — harga jual lebih rendah dari harga beli."}
+      {(hargaBeli !== "" && (hg < hb || ht < hb || hp < hb)) && (
+        <div className="rounded-lg border px-3 py-2 text-xs border-red-200 bg-red-50 text-red-700">
+          Harga jual tidak boleh lebih rendah dari harga beli.
         </div>
       )}
       <FormActions

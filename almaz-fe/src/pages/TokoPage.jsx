@@ -62,6 +62,13 @@ export default function TokoPage({ tokoList, onAdd, onUpdate, onDelete }) {
             { key: "no", label: "No", render: (_, idx) => idx + 1 },
             { key: "nama", label: "Nama Toko" },
             {
+              key: "tipe_harga",
+              label: "Tipe Harga",
+              render: (r) => (
+                <span className="capitalize">{r.tipe_harga}</span>
+              )
+            },
+            {
               key: "alamat",
               label: "Alamat",
               render: (r) => (
@@ -110,13 +117,14 @@ export default function TokoPage({ tokoList, onAdd, onUpdate, onDelete }) {
 
 function TokoForm({ initial, onSubmit, onCancel }) {
   const [nama, setNama] = useState(initial?.nama || "");
+  const [tipeHarga, setTipeHarga] = useState(initial?.tipe_harga || "toko");
   const [alamat, setAlamat] = useState(initial?.alamat || "");
   const valid = nama.trim().length > 0;
 
   const submit = (e) => {
     e.preventDefault();
     if (!valid) return;
-    onSubmit({ nama: nama.trim(), alamat: alamat.trim() });
+    onSubmit({ nama: nama.trim(), tipe_harga: tipeHarga, alamat: alamat.trim() });
   };
 
   return (
@@ -131,6 +139,16 @@ function TokoForm({ initial, onSubmit, onCancel }) {
           autoFocus
           required
         />
+      </Field>
+      <Field label="Tipe Harga">
+        <SelectInput
+          value={tipeHarga}
+          onChange={(e) => setTipeHarga(e.target.value)}
+        >
+          <option value="grosir">Grosir</option>
+          <option value="toko">Toko</option>
+          <option value="perorangan">Perorangan</option>
+        </SelectInput>
       </Field>
       <Field label="Alamat">
         <input

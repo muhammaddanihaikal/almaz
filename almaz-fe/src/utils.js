@@ -19,35 +19,50 @@ export const fmtTanggal = (iso) => {
   });
 };
 
-export const currentMonth = () => new Date().toISOString().slice(0, 7);
+export const getDateRanges = () => {
+  const today = new Date();
+  
+  // Hari Ini
+  const todayStr = today.toISOString().split("T")[0];
+  
+  // Minggu Ini (Senin sampai Minggu)
+  const day = today.getDay();
+  const diffToMonday = today.getDate() - day + (day === 0 ? -6 : 1);
+  const startOfWeek = new Date(today.getFullYear(), today.getMonth(), diffToMonday);
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(endOfWeek.getDate() + 6);
+  
+  // Bulan Ini
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
-export const fmtBulan = (m) => {
-  if (!m) return "Semua Bulan";
-  const [y, mo] = m.split("-");
-  if (!mo) return y;
-  const d = new Date(Number(y), Number(mo) - 1, 1);
-  return d.toLocaleDateString("id-ID", {
-    month: "long",
-    year: "numeric",
-  });
+  const fmt = (d) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  return {
+    hari_ini: { start: fmt(today), end: fmt(today) },
+    minggu_ini: { start: fmt(startOfWeek), end: fmt(endOfWeek) },
+    bulan_ini: { start: fmt(startOfMonth), end: fmt(endOfMonth) },
+  };
 };
 
 // ===== Filters / sort =====
-export const filterByMonth = (rows, month) =>
-  !month ? rows : rows.filter((r) => r.tanggal.startsWith(month));
+export const filterByDateRange = (rows, range) => {
+  if (!range || !range.start || !range.end) return rows;
+  return rows.filter((r) => r.tanggal >= range.start && r.tanggal <= range.end);
+};
+
+export const defaultDateRange = (type = "bulan_ini") => {
+  const ranges = getDateRanges();
+  return { preset: type, ...ranges[type] };
+};
 
 export const sortByDateDesc = (rows) =>
   [...rows].sort((a, b) => b.tanggal.localeCompare(a.tanggal));
-
-export const getAvailableMonths = (...rowSets) => {
-  const set = new Set();
-  for (const rows of rowSets) {
-    for (const r of rows) set.add(r.tanggal.slice(0, 7));
-  }
-  set.add(currentMonth());
-  return [...set].sort().reverse();
-};
-
 // ===== Domain =====
 export const getRokok = (rokokList, nama) =>
   rokokList.find((r) => r.nama === nama);
@@ -55,7 +70,7 @@ export const getRokok = (rokokList, nama) =>
 export const hitungProfit = (rokokList, distribusi) =>
   (distribusi.items || []).reduce((sum, item) => {
     const r = getRokok(rokokList, item.rokok);
-    return r ? sum + item.qty * (r.harga_jual - r.harga_beli) : sum;
+    return r ? sum + item.qty * ((item.harga || 0) - r.harga_beli) : sum;
   }, 0);
 
 export const newId = () => Date.now() + Math.floor(Math.random() * 1000);

@@ -14,31 +14,24 @@ import {
 import {
   fmtIDR,
   fmtTanggal,
-  currentMonth,
-  fmtBulan,
-  filterByMonth,
+  filterByDateRange,
+  defaultDateRange,
   sortByDateDesc,
-  getAvailableMonths,
   hitungProfit,
 } from "../utils";
-import { Card, KpiCard, MonthFilter, RowActions } from "../components/ui";
+import { Card, KpiCard, DateFilter, RowActions } from "../components/ui";
 import DataTable from "../components/DataTable";
 import Modal from "../components/Modal";
 
 export default function Dashboard({ distribusi, retur, rokokList, tokoList }) {
-  const [bulan, setBulan] = useState(currentMonth());
+  const [dateRange, setDateRange] = useState(defaultDateRange("bulan_ini"));
   const [detail, setDetail] = useState(null);
 
-  const months = useMemo(
-    () => getAvailableMonths(distribusi, retur),
-    [distribusi, retur]
-  );
-
   const distribusiF = useMemo(
-    () => filterByMonth(distribusi, bulan),
-    [distribusi, bulan]
+    () => filterByDateRange(distribusi, dateRange),
+    [distribusi, dateRange]
   );
-  const returF = useMemo(() => filterByMonth(retur, bulan), [retur, bulan]);
+  const returF = useMemo(() => filterByDateRange(retur, dateRange), [retur, dateRange]);
 
   const stats = useMemo(() => {
     const totalPenjualan = distribusiF.reduce(
@@ -97,10 +90,10 @@ export default function Dashboard({ distribusi, retur, rokokList, tokoList }) {
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="mt-1 text-sm text-neutral-500">
             Ringkasan performa penjualan dan distribusi rokok
-            {bulan ? ` — ${fmtBulan(bulan)}` : " — semua bulan"}.
+            {dateRange?.start ? ` — ${fmtTanggal(dateRange.start)} s/d ${fmtTanggal(dateRange.end)}` : " — semua waktu"}.
           </p>
         </div>
-        <MonthFilter value={bulan} onChange={setBulan} months={months} />
+        <DateFilter value={dateRange} onChange={setDateRange} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

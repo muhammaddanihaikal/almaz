@@ -3,11 +3,9 @@ import { Plus, Trash2 } from "lucide-react";
 import {
   fmtIDR,
   fmtTanggal,
-  currentMonth,
-  fmtBulan,
-  filterByMonth,
+  filterByDateRange,
+  defaultDateRange,
   sortByDateDesc,
-  getAvailableMonths,
   hitungProfit,
   downloadExcel,
   getRokok,
@@ -16,7 +14,7 @@ import { PAGE_SIZE } from "../data";
 import {
   Card,
   PageHeader,
-  MonthFilter,
+  DateFilter,
   DownloadButton,
   PrimaryButton,
   Field,
@@ -42,39 +40,44 @@ export default function DistribusiPage({
   const [mode, setMode] = useState(null);
   const [editing, setEditing] = useState(null);
   const [detail, setDetail] = useState(null);
-  const [bulan, setBulan] = useState(currentMonth());
-
-  const months = useMemo(() => getAvailableMonths(distribusi), [distribusi]);
-
+  const [dateRange, setDateRange] = useState(defaultDateRange("bulan_ini"));
   const [tokoFilter, setTokoFilter] = useState("");
+  const [salesFilter, setSalesFilter] = useState("");
 
   const rows = useMemo(() => {
-    let filtered = filterByMonth(distribusi, bulan);
+    let filtered = filterByDateRange(distribusi, dateRange);
     if (tokoFilter) filtered = filtered.filter((r) => r.toko === tokoFilter);
+    if (salesFilter) filtered = filtered.filter((r) => r.sales === salesFilter);
     return sortByDateDesc(filtered);
-  }, [distribusi, bulan, tokoFilter]);
+  }, [distribusi, dateRange, tokoFilter, salesFilter]);
 
   const handleDownload = () => {
-    const label = bulan || "semua-bulan";
+    const label = dateRange?.start ? `${dateRange.start}_${dateRange.end}` : "semua-waktu";
+    const tLabel = tokoFilter ? `-${tokoFilter.replace(/\s+/g, '_').toLowerCase()}` : "";
+    const sLabel = salesFilter ? `-${salesFilter.replace(/\s+/g, '_').toLowerCase()}` : "";
     const flat = rows.flatMap((d) =>
       d.items.map((it) => ({
         tanggal: d.tanggal,
         toko: d.toko,
         sales: d.sales || "",
+        pembayaran: it.pembayaran || "Cash",
+        tanggal_bayar: d.tanggal_bayar || "",
         rokok: it.rokok,
         qty: it.qty,
         harga: it.harga,
         total: it.qty * it.harga,
         profit:
           it.qty *
-          ((getRokok(rokokList, it.rokok)?.harga_jual || 0) -
+          ((it.harga || 0) -
             (getRokok(rokokList, it.rokok)?.harga_beli || 0)),
       }))
     );
-    downloadExcel(flat, `distribusi-${label}`, [
+    downloadExcel(flat, `distribusi${tLabel}${sLabel}-${label}`, [
       { label: "Tanggal",      value: (r) => r.tanggal },
       { label: "Toko",         value: (r) => r.toko },
       { label: "Sales",        value: (r) => r.sales },
+      { label: "Pembayaran",   value: (r) => r.pembayaran },
+      { label: "Tgl Bayar",    value: (r) => r.tanggal_bayar },
       { label: "Rokok",        value: (r) => r.rokok },
       { label: "Qty",          value: (r) => r.qty },
       { label: "Harga Satuan", value: (r) => r.harga },
@@ -96,7 +99,7 @@ export default function DistribusiPage({
       <PageHeader
         title="Distribusi"
         subtitle={`Daftar semua barang keluar ke toko${
-          bulan ? ` — ${fmtBulan(bulan)}` : " — semua bulan"
+          dateRange?.start ? ` — ${fmtTanggal(dateRange.start)} s/d ${fmtTanggal(dateRange.end)}` : " — semua waktu"
         }${tokoFilter ? ` (${tokoFilter})` : ""}.`}
         action={
           <div className="flex flex-wrap items-center gap-2">
@@ -110,8 +113,8 @@ export default function DistribusiPage({
 
       <div className="flex flex-wrap items-center gap-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-neutral-600">Bulan:</label>
-          <MonthFilter value={bulan} onChange={setBulan} months={months} />
+          <label className="text-sm font-medium text-neutral-600">Waktu:</label>
+          <DateFilter value={dateRange} onChange={setDateRange} />
         </div>
         <div className="flex items-center gap-3">
           <label className="text-sm font-medium text-neutral-600">Toko:</label>
@@ -127,11 +130,25 @@ export default function DistribusiPage({
             />
           </div>
         </div>
+        <div className="flex items-center gap-3">
+          <label className="text-sm font-medium text-neutral-600">Sales:</label>
+          <div className="w-48">
+            <SearchableSelect
+              value={salesFilter}
+              onChange={(e) => setSalesFilter(e.target.value)}
+              placeholder="Semua Sales"
+              options={[
+                { value: "", label: "Semua Sales" },
+                ...salesList.map((s) => ({ value: s.nama, label: s.nama })),
+              ]}
+            />
+          </div>
+        </div>
       </div>
 
       <Card>
         <DataTable
-          key={`${bulan}-${tokoFilter}`}
+          key={`${dateRange?.start}-${dateRange?.end}-${tokoFilter}-${salesFilter}`}
           pageSize={PAGE_SIZE}
           columns={[
             { key: "no",      label: "No",      render: (_, idx) => idx + 1 },
@@ -181,12 +198,12 @@ export default function DistribusiPage({
             },
           ]}
           rows={rows}
-          empty={bulan ? `Tidak ada distribusi di ${fmtBulan(bulan)}.` : "Belum ada distribusi."}
+          empty={dateRange?.start ? `Tidak ada distribusi dari ${fmtTanggal(dateRange.start)} s/d ${fmtTanggal(dateRange.end)}.` : "Belum ada distribusi."}
         />
       </Card>
 
       {detail && (
-        <Modal title="Detail Distribusi" onClose={() => setDetail(null)} width="max-w-lg">
+        <Modal title="Detail Distribusi" onClose={() => setDetail(null)} width="max-w-4xl">
           <DistribusiDetail record={detail} rokokList={rokokList} />
         </Modal>
       )}
@@ -195,7 +212,7 @@ export default function DistribusiPage({
         <Modal
           title={mode === "add" ? "Input Distribusi" : "Edit Distribusi"}
           onClose={close}
-          width="max-w-2xl"
+          width="max-w-4xl"
         >
           <DistribusiForm
             initial={editing}
@@ -238,6 +255,12 @@ function DistribusiDetail({ record, rokokList }) {
             <p className="font-medium">{record.sales}</p>
           </div>
         )}
+        {record.tanggal_bayar && (
+          <div>
+            <p className="text-xs text-neutral-500">Tanggal Bayar</p>
+            <p className="font-medium text-red-600">{fmtTanggal(record.tanggal_bayar)}</p>
+          </div>
+        )}
       </div>
 
       <div>
@@ -251,6 +274,7 @@ function DistribusiDetail({ record, rokokList }) {
                 <th className="px-3 py-2 text-left">Rokok</th>
                 <th className="px-3 py-2 text-right">Qty</th>
                 <th className="px-3 py-2 text-right">Harga</th>
+                <th className="px-3 py-2 text-left">Pembayaran</th>
                 <th className="px-3 py-2 text-right">Subtotal</th>
                 <th className="px-3 py-2 text-right">Profit</th>
               </tr>
@@ -258,12 +282,13 @@ function DistribusiDetail({ record, rokokList }) {
             <tbody>
               {record.items.map((item, i) => {
                 const r = getRokok(rokokList, item.rokok);
-                const itemProfit = r ? item.qty * (r.harga_jual - r.harga_beli) : 0;
+                const itemProfit = r ? item.qty * (item.harga - r.harga_beli) : 0;
                 return (
                   <tr key={i} className="border-b border-neutral-100">
                     <td className="px-3 py-2.5">{item.rokok}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums">{item.qty}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums">{fmtIDR(item.harga)}</td>
+                    <td className="px-3 py-2.5 text-left"><span className="text-xs font-medium px-2 py-1 rounded-md bg-neutral-100 text-neutral-600">{item.pembayaran || "Cash"}</span></td>
                     <td className="px-3 py-2.5 text-right tabular-nums">{fmtIDR(item.qty * item.harga)}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums text-neutral-600">{fmtIDR(itemProfit)}</td>
                   </tr>
@@ -272,6 +297,7 @@ function DistribusiDetail({ record, rokokList }) {
               <tr className="border-t-2 border-neutral-200 bg-neutral-50">
                 <td colSpan="1" className="px-3 py-2.5 text-xs font-semibold text-neutral-500">Total</td>
                 <td className="px-3 py-2.5 text-right text-xs font-semibold text-neutral-900 tabular-nums">{totalQty}</td>
+                <td className="px-3 py-2.5"></td>
                 <td className="px-3 py-2.5"></td>
                 <td className="px-3 py-2.5 text-right text-xs font-semibold text-neutral-900 tabular-nums">{fmtIDR(total)}</td>
                 <td className="px-3 py-2.5 text-right text-xs font-semibold text-neutral-900 tabular-nums">{fmtIDR(profit)}</td>
@@ -289,13 +315,14 @@ function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onS
   const [tanggal, setTanggal] = useState(initial?.tanggal || today);
   const [toko, setToko]       = useState(initial?.toko || "");
   const [sales, setSales]     = useState(initial?.sales || "");
+  const [tanggalBayar, setTanggalBayar] = useState(initial?.tanggal_bayar || "");
   const [items, setItems] = useState(
     initial
-      ? initial.items.map((it) => ({ ...it }))
-      : [{ rokok: "", qty: "" }, { rokok: "", qty: "" }]
+      ? initial.items.map((it) => ({ ...it, pembayaran: it.pembayaran || "Cash" }))
+      : [{ rokok: "", qty: "", pembayaran: "Cash" }, { rokok: "", qty: "", pembayaran: "Cash" }]
   );
 
-  const addItem    = () => setItems([...items, { rokok: "", qty: "" }]);
+  const addItem    = () => setItems([...items, { rokok: "", qty: "", pembayaran: "Cash" }]);
   const removeItem = (idx) => setItems(items.filter((_, i) => i !== idx));
   const updateItem = (idx, field, val) =>
     setItems(items.map((item, i) => (i === idx ? { ...item, [field]: val } : item)));
@@ -307,12 +334,16 @@ function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onS
       (d) => d.tanggal === tanggal && d.toko === toko && d.id !== initial?.id
     );
 
+  const validItems = items.filter((it) => it.rokok && Number(it.qty) > 0);
+  const adaHutang = validItems.some(it => it.pembayaran === "Hutang");
+
   const valid =
     !isDuplicate &&
     tanggal &&
     toko &&
-    items.length > 0 &&
-    items.every((it) => it.rokok && Number(it.qty) > 0);
+    sales &&
+    (!adaHutang || tanggalBayar) &&
+    validItems.length > 0;
 
   const submit = (e) => {
     e.preventDefault();
@@ -321,11 +352,21 @@ function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onS
       tanggal,
       toko,
       sales,
-      items: items.map((it) => ({
-        rokok: it.rokok,
-        qty: Number(it.qty),
-        harga: getRokok(rokokList, it.rokok)?.harga_jual || 0,
-      })),
+      tanggal_bayar: adaHutang ? tanggalBayar : null,
+      items: validItems.map((it) => {
+        const t = tokoList.find(x => x.nama === toko);
+        const tipeHarga = t?.tipe_harga || "toko";
+        let prop = "harga_" + tipeHarga;
+        if (!["harga_grosir", "harga_toko", "harga_perorangan"].includes(prop)) {
+          prop = "harga_toko";
+        }
+        return {
+          rokok: it.rokok,
+          qty: Number(it.qty),
+          harga: getRokok(rokokList, it.rokok)?.[prop] || 0,
+          pembayaran: it.pembayaran,
+        };
+      }),
     });
   };
 
@@ -341,7 +382,7 @@ function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onS
             required
           />
         </Field>
-        <Field label="Sales (opsional)">
+        <Field label="Sales">
           <SearchableSelect
             value={sales}
             onChange={(e) => setSales(e.target.value)}
@@ -374,8 +415,15 @@ function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onS
         </span>
         <div className="space-y-3">
           {items.map((item, idx) => {
+            const t = tokoList.find(x => x.nama === toko);
+            const tipeHarga = t?.tipe_harga || "toko";
+            let prop = "harga_" + tipeHarga;
+            if (!["harga_grosir", "harga_toko", "harga_perorangan"].includes(prop)) {
+              prop = "harga_toko";
+            }
             const rokokData = getRokok(rokokList, item.rokok);
-            const totalHarga = rokokData && item.qty ? rokokData.harga_jual * Number(item.qty) : null;
+            const itemHarga = rokokData ? rokokData[prop] || 0 : 0;
+            const totalHarga = rokokData && item.qty ? itemHarga * Number(item.qty) : null;
             return (
               <div key={idx} className="flex items-end gap-3">
                 <div className="flex-1">
@@ -383,7 +431,7 @@ function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onS
                     <SelectInput
                       value={item.rokok}
                       onChange={(e) => updateItem(idx, "rokok", e.target.value)}
-                      required
+                      required={idx === 0}
                     >
                       <option value="">Pilih rokok</option>
                       {rokokList.map((r) => (
@@ -403,8 +451,19 @@ function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onS
                       onChange={(e) => updateItem(idx, "qty", e.target.value)}
                       placeholder="0"
                       className={inputCls}
-                      required
+                      required={idx === 0}
                     />
+                  </Field>
+                </div>
+                <div className="w-28">
+                  <Field label={idx === 0 ? "Bayar" : ""}>
+                    <SelectInput
+                      value={item.pembayaran}
+                      onChange={(e) => updateItem(idx, "pembayaran", e.target.value)}
+                    >
+                      <option value="Cash">Cash</option>
+                      <option value="Hutang">Hutang</option>
+                    </SelectInput>
                   </Field>
                 </div>
                 <div className="w-32">
@@ -435,6 +494,21 @@ function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onS
           + Tambah Baris
         </button>
       </div>
+
+      {adaHutang && (
+        <div className="rounded-lg border border-red-100 bg-red-50 p-4 shadow-sm">
+          <p className="mb-3 text-sm font-medium text-red-800">Terdapat item Hutang. Kapan akan dibayar?</p>
+          <Field label="Tanggal Bayar">
+            <input
+              type="date"
+              value={tanggalBayar}
+              onChange={(e) => setTanggalBayar(e.target.value)}
+              className={inputCls + " border-red-200 focus:border-red-500 focus:ring-red-500"}
+              required
+            />
+          </Field>
+        </div>
+      )}
 
       <FormActions
         onCancel={onCancel}
