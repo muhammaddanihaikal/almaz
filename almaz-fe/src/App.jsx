@@ -1,19 +1,23 @@
 import { useState } from "react";
-import { ROKOK_AWAL, TOKO_AWAL, DISTRIBUSI_AWAL, RETUR_AWAL } from "./data";
+import { ROKOK_AWAL, TOKO_AWAL, DISTRIBUSI_AWAL, RETUR_AWAL, SALES_AWAL, ABSENSI_AWAL } from "./data";
 import { newId } from "./utils";
-import Header from "./components/Header";
+import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import DistribusiPage from "./pages/DistribusiPage";
 import ReturPage from "./pages/ReturPage";
 import TokoPage from "./pages/TokoPage";
 import RokokPage from "./pages/RokokPage";
+import SalesPage from "./pages/SalesPage";
+import AbsensiPage from "./pages/AbsensiPage";
 
 export default function App() {
   const [tab, setTab] = useState("dashboard");
   const [rokokList, setRokokList] = useState(ROKOK_AWAL);
   const [tokoList, setTokoList] = useState(TOKO_AWAL);
+  const [salesList, setSalesList] = useState(SALES_AWAL);
   const [distribusi, setDistribusi] = useState(DISTRIBUSI_AWAL);
   const [retur, setRetur] = useState(RETUR_AWAL);
+  const [absensiList, setAbsensiList] = useState(ABSENSI_AWAL);
 
   // Adjust stok: distribusi decreases (sign=-1), retur increases (sign=+1)
   const syncStok = (prevItems, nextItems, sign) => {
@@ -40,15 +44,9 @@ export default function App() {
     setRokokList((prev) => prev.map((r) => (r.id === id ? { ...r, ...data } : r)));
     if (old && old.nama !== data.nama) {
       const rename = (items) =>
-        items.map((it) =>
-          it.rokok === old.nama ? { ...it, rokok: data.nama } : it
-        );
-      setDistribusi((prev) =>
-        prev.map((d) => ({ ...d, items: rename(d.items) }))
-      );
-      setRetur((prev) =>
-        prev.map((r) => ({ ...r, items: rename(r.items) }))
-      );
+        items.map((it) => (it.rokok === old.nama ? { ...it, rokok: data.nama } : it));
+      setDistribusi((prev) => prev.map((d) => ({ ...d, items: rename(d.items) })));
+      setRetur((prev) => prev.map((r) => ({ ...r, items: rename(r.items) })));
     }
   };
 
@@ -72,6 +70,24 @@ export default function App() {
 
   const deleteToko = (id) =>
     setTokoList((prev) => prev.filter((t) => t.id !== id));
+
+  // --- CRUD Sales (cascade nama ke distribusi & retur) ---
+  const addSales = (data) =>
+    setSalesList((prev) => [...prev, { ...data, id: newId() }]);
+
+  const updateSales = (id, data) => {
+    const old = salesList.find((s) => s.id === id);
+    setSalesList((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
+    if (old && old.nama !== data.nama) {
+      const renamedSales = (rows) =>
+        rows.map((r) => (r.sales === old.nama ? { ...r, sales: data.nama } : r));
+      setDistribusi((prev) => renamedSales(prev));
+      setRetur((prev) => renamedSales(prev));
+    }
+  };
+
+  const deleteSales = (id) =>
+    setSalesList((prev) => prev.filter((s) => s.id !== id));
 
   // --- CRUD Distribusi ---
   const addDistribusi = (data) => {
@@ -109,55 +125,90 @@ export default function App() {
     syncStok(old?.items || [], [], +1);
   };
 
+  // --- Absensi (save replaces all records for a date) ---
+  const saveAbsensi = (tanggal, records) => {
+    setAbsensiList((prev) => {
+      const filtered = prev.filter((a) => a.tanggal !== tanggal);
+      const newRecords = records.map((r) => ({ ...r, tanggal, id: newId() }));
+      return [...filtered, ...newRecords];
+    });
+  };
+
+  const deleteAbsensi = (tanggal) =>
+    setAbsensiList((prev) => prev.filter((a) => a.tanggal !== tanggal));
+
   return (
-    <div className="min-h-screen bg-neutral-50 text-neutral-900">
-      <Header tab={tab} onTabChange={setTab} />
-      <main className="mx-auto max-w-7xl px-6 py-8">
-        {tab === "dashboard" && (
-          <Dashboard
-            distribusi={distribusi}
-            retur={retur}
-            rokokList={rokokList}
-            tokoList={tokoList}
-          />
-        )}
-        {tab === "distribusi" && (
-          <DistribusiPage
-            distribusi={distribusi}
-            rokokList={rokokList}
-            tokoList={tokoList}
-            onAdd={addDistribusi}
-            onUpdate={updateDistribusi}
-            onDelete={deleteDistribusi}
-          />
-        )}
-        {tab === "retur" && (
-          <ReturPage
-            retur={retur}
-            rokokList={rokokList}
-            tokoList={tokoList}
-            onAdd={addRetur}
-            onUpdate={updateRetur}
-            onDelete={deleteRetur}
-          />
-        )}
-        {tab === "toko" && (
-          <TokoPage
-            tokoList={tokoList}
-            onAdd={addToko}
-            onUpdate={updateToko}
-            onDelete={deleteToko}
-          />
-        )}
-        {tab === "rokok" && (
-          <RokokPage
-            rokokList={rokokList}
-            onAdd={addRokok}
-            onUpdate={updateRokok}
-            onDelete={deleteRokok}
-          />
-        )}
-      </main>
+    <div className="flex min-h-screen bg-neutral-50 text-neutral-900">
+      <Sidebar tab={tab} onTabChange={setTab} />
+
+      <div className="flex flex-1 flex-col">
+        <main className="flex-1">
+          <div className="mx-auto max-w-6xl px-6 py-8">
+            {tab === "dashboard" && (
+              <Dashboard
+                distribusi={distribusi}
+                retur={retur}
+                rokokList={rokokList}
+                tokoList={tokoList}
+              />
+            )}
+            {tab === "distribusi" && (
+              <DistribusiPage
+                distribusi={distribusi}
+                rokokList={rokokList}
+                tokoList={tokoList}
+                salesList={salesList}
+                onAdd={addDistribusi}
+                onUpdate={updateDistribusi}
+                onDelete={deleteDistribusi}
+              />
+            )}
+            {tab === "retur" && (
+              <ReturPage
+                retur={retur}
+                rokokList={rokokList}
+                tokoList={tokoList}
+                salesList={salesList}
+                onAdd={addRetur}
+                onUpdate={updateRetur}
+                onDelete={deleteRetur}
+              />
+            )}
+            {tab === "toko" && (
+              <TokoPage
+                tokoList={tokoList}
+                onAdd={addToko}
+                onUpdate={updateToko}
+                onDelete={deleteToko}
+              />
+            )}
+            {tab === "rokok" && (
+              <RokokPage
+                rokokList={rokokList}
+                onAdd={addRokok}
+                onUpdate={updateRokok}
+                onDelete={deleteRokok}
+              />
+            )}
+            {tab === "sales" && (
+              <SalesPage
+                salesList={salesList}
+                onAdd={addSales}
+                onUpdate={updateSales}
+                onDelete={deleteSales}
+              />
+            )}
+            {tab === "absensi" && (
+              <AbsensiPage
+                absensiList={absensiList}
+                salesList={salesList}
+                onSave={saveAbsensi}
+                onDelete={deleteAbsensi}
+              />
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

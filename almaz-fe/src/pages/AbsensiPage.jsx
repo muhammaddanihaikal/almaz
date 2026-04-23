@@ -1,0 +1,331 @@
+import { useMemo, useState } from "react";
+import { Plus } from "lucide-react";
+import {
+  fmtTanggal,
+  currentMonth,
+  fmtBulan,
+  filterByMonth,
+  sortByDateDesc,
+  getAvailableMonths,
+  downloadExcel,
+} from "../utils";
+import { PAGE_SIZE } from "../data";
+import {
+  Card,
+  PageHeader,
+  MonthFilter,
+  DownloadButton,
+  PrimaryButton,
+  Field,
+  FormActions,
+  SelectInput,
+  inputCls,
+  RowActions,
+} from "../components/ui";
+import DataTable from "../components/DataTable";
+import Modal from "../components/Modal";
+
+const STATUS_LABEL = { hadir: "Hadir", izin: "Izin", alpha: "Alpha" };
+const STATUS_COLOR = {
+  hadir: "bg-green-100 text-green-700",
+  izin:  "bg-yellow-100 text-yellow-700",
+  alpha: "bg-red-100 text-red-700",
+};
+
+function StatusBadge({ status }) {
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLOR[status] || "bg-neutral-100 text-neutral-600"}`}>
+      {STATUS_LABEL[status] || status}
+    </span>
+  );
+}
+
+// Group flat absensi records by tanggal → { tanggal, records: [{sales_id, status}] }
+function groupByDate(absensiList) {
+  const map = new Map();
+  for (const a of absensiList) {
+    if (!map.has(a.tanggal)) map.set(a.tanggal, []);
+    map.get(a.tanggal).push(a);
+  }
+  return [...map.entries()].map(([tanggal, records]) => ({ tanggal, records }));
+}
+
+export default function AbsensiPage({ absensiList, salesList, onSave, onDelete }) {
+  const [mode, setMode] = useState(null);
+  const [editingTanggal, setEditingTanggal] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [bulan, setBulan] = useState(currentMonth());
+
+  const months = useMemo(() => getAvailableMonths(absensiList), [absensiList]);
+
+  const filteredFlat = useMemo(() => filterByMonth(absensiList, bulan), [absensiList, bulan]);
+
+  const rows = useMemo(() => {
+    const grouped = groupByDate(filteredFlat);
+    return sortByDateDesc(grouped);
+  }, [filteredFlat]);
+
+  const handleDownload = () => {
+    const label = bulan || "semua-bulan";
+    const flat = rows.flatMap((row) =>
+      row.records.map((rec) => {
+        const s = salesList.find((s) => s.id === rec.sales_id);
+        return {
+          tanggal: row.tanggal,
+          sales: s?.nama || "-",
+          status: STATUS_LABEL[rec.status] || rec.status,
+          alasan: rec.reason || "",
+        };
+      })
+    );
+    downloadExcel(flat, `absensi-${label}`, [
+      { label: "Tanggal", value: (r) => r.tanggal },
+      { label: "Sales",   value: (r) => r.sales },
+      { label: "Status",  value: (r) => r.status },
+      { label: "Alasan",  value: (r) => r.alasan },
+    ]);
+  };
+
+  const close = () => { setMode(null); setEditingTanggal(null); };
+
+  const handleDelete = (tanggal) => {
+    if (window.confirm(`Hapus semua data absensi tanggal ${fmtTanggal(tanggal)}?`))
+      onDelete(tanggal);
+  };
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Absensi Sales"
+        subtitle={`Rekap kehadiran sales harian${bulan ? ` — ${fmtBulan(bulan)}` : " — semua bulan"}.`}
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <DownloadButton onClick={handleDownload} disabled={!rows.length} />
+            <PrimaryButton onClick={() => { setEditingTanggal(null); setMode("add"); }} icon={Plus}>
+              Input Absensi
+            </PrimaryButton>
+          </div>
+        }
+      />
+
+      <div className="flex flex-wrap items-center gap-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <div className="flex items-center gap-3">
+          <label className="text-sm font-medium text-neutral-600">Bulan:</label>
+          <MonthFilter value={bulan} onChange={setBulan} months={months} />
+        </div>
+      </div>
+
+      <Card>
+        <DataTable
+          key={bulan}
+          pageSize={PAGE_SIZE}
+          columns={[
+            { key: "no",      label: "No",      render: (_, idx) => idx + 1 },
+            { key: "tanggal", label: "Tanggal", render: (r) => fmtTanggal(r.tanggal) },
+            {
+              key: "rekap",
+              label: "Rekap Kehadiran",
+              render: (r) => {
+                const hadir = r.records.filter((a) => a.status === "hadir").length;
+                const izin  = r.records.filter((a) => a.status === "izin").length;
+                const alpha = r.records.filter((a) => a.status === "alpha").length;
+                return (
+                  <div className="flex flex-wrap gap-1.5">
+                    {hadir > 0 && <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">{hadir} Hadir</span>}
+                    {izin  > 0 && <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-700">{izin} Izin</span>}
+                    {alpha > 0 && <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700">{alpha} Alpha</span>}
+                  </div>
+                );
+              },
+            },
+            {
+              key: "total",
+              label: "Total",
+              align: "right",
+              render: (r) => <span className="text-sm text-neutral-500">{r.records.length} sales</span>,
+            },
+            {
+              key: "actions",
+              label: "",
+              align: "right",
+              render: (r) => (
+                <RowActions
+                  onDetail={() => setDetail(r)}
+                  onEdit={() => { setEditingTanggal(r.tanggal); setMode("edit"); }}
+                  onDelete={() => handleDelete(r.tanggal)}
+                />
+              ),
+            },
+          ]}
+          rows={rows}
+          empty={bulan ? `Tidak ada absensi di ${fmtBulan(bulan)}.` : "Belum ada data absensi."}
+        />
+      </Card>
+
+      {/* Detail modal */}
+      {detail && (
+        <Modal title={`Detail Absensi — ${fmtTanggal(detail.tanggal)}`} onClose={() => setDetail(null)} width="max-w-md">
+          <div className="space-y-2">
+            {detail.records.map((rec) => {
+              const s = salesList.find((s) => s.id === rec.sales_id);
+              return (
+                <div key={rec.id} className="space-y-1 rounded-lg border border-neutral-100 px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-medium text-neutral-800">{s?.nama || "—"}</span>
+                    <StatusBadge status={rec.status} />
+                  </div>
+                  {rec.reason && (
+                    <p className="text-xs text-neutral-500">Alasan: {rec.reason}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Modal>
+      )}
+
+      {/* Add / Edit modal */}
+      {mode && (
+        <Modal
+          title={mode === "add" ? "Input Absensi" : `Edit Absensi — ${fmtTanggal(editingTanggal)}`}
+          onClose={close}
+          width="max-w-lg"
+        >
+          <AbsensiForm
+            tanggal={editingTanggal}
+            absensiList={absensiList}
+            salesList={salesList}
+            onSubmit={(tanggal, records) => { onSave(tanggal, records); close(); }}
+            onCancel={close}
+          />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function AbsensiForm({ tanggal: initialTanggal, absensiList, salesList, onSubmit, onCancel }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const [tanggal, setTanggal] = useState(initialTanggal || today);
+
+  const existingForDate = useMemo(
+    () => absensiList.filter((a) => a.tanggal === tanggal),
+    [absensiList, tanggal]
+  );
+
+  const [statuses, setStatuses] = useState(() => {
+    const map = {};
+    salesList.forEach((s) => {
+      const existing = existingForDate.find((a) => a.sales_id === s.id);
+      map[s.id] = existing?.status || "hadir";
+    });
+    return map;
+  });
+
+  const [reasons, setReasons] = useState(() => {
+    const map = {};
+    salesList.forEach((s) => {
+      const existing = existingForDate.find((a) => a.sales_id === s.id);
+      map[s.id] = existing?.reason || "";
+    });
+    return map;
+  });
+
+  // When date changes (add mode), reload existing statuses and reasons for that date
+  const handleTanggalChange = (newTanggal) => {
+    setTanggal(newTanggal);
+    const existing = absensiList.filter((a) => a.tanggal === newTanggal);
+    const statusMap = {};
+    const reasonMap = {};
+    salesList.forEach((s) => {
+      const found = existing.find((a) => a.sales_id === s.id);
+      statusMap[s.id] = found?.status || "hadir";
+      reasonMap[s.id] = found?.reason || "";
+    });
+    setStatuses(statusMap);
+    setReasons(reasonMap);
+  };
+
+  const valid = tanggal && salesList.length > 0;
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (!valid) return;
+    const records = salesList.map((s) => {
+      const rec = { sales_id: s.id, status: statuses[s.id] || "hadir" };
+      if (statuses[s.id] !== "hadir" && reasons[s.id]) {
+        rec.reason = reasons[s.id];
+      }
+      return rec;
+    });
+    onSubmit(tanggal, records);
+  };
+
+  if (salesList.length === 0) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-neutral-500">Belum ada sales terdaftar. Tambahkan sales terlebih dahulu di menu Sales.</p>
+        <div className="flex justify-end">
+          <button type="button" onClick={onCancel} className="rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50">
+            Tutup
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-4">
+      <Field label="Tanggal">
+        <input
+          type="date"
+          value={tanggal}
+          onChange={(e) => handleTanggalChange(e.target.value)}
+          className={inputCls}
+          disabled={!!initialTanggal}
+          required
+        />
+      </Field>
+
+      <div className="space-y-2">
+        <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Status Kehadiran</span>
+        {salesList.map((s) => {
+          const status = statuses[s.id] || "hadir";
+          const showReason = status !== "hadir";
+          return (
+            <div key={s.id} className="space-y-2 rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-medium text-neutral-800">{s.nama}</span>
+                <div className="w-36">
+                  <SelectInput
+                    value={status}
+                    onChange={(e) => setStatuses((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                  >
+                    <option value="hadir">Hadir</option>
+                    <option value="izin">Izin</option>
+                    <option value="alpha">Alpha</option>
+                  </SelectInput>
+                </div>
+              </div>
+              {showReason && (
+                <input
+                  type="text"
+                  value={reasons[s.id] || ""}
+                  onChange={(e) => setReasons((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                  placeholder="Misal: Sakit, Keperluan..."
+                  className={inputCls}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <FormActions
+        onCancel={onCancel}
+        disabled={!valid}
+        submitLabel={initialTanggal ? "Simpan Perubahan" : "Simpan Absensi"}
+      />
+    </form>
+  );
+}

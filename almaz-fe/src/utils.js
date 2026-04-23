@@ -1,3 +1,5 @@
+import * as XLSX from "xlsx";
+
 // ===== Format =====
 const idr = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -58,24 +60,22 @@ export const hitungProfit = (rokokList, distribusi) =>
 
 export const newId = () => Date.now() + Math.floor(Math.random() * 1000);
 
-// ===== CSV Download =====
-export const downloadCSV = (rows, filename, columns) => {
-  const esc = (v) => {
-    const s = String(v ?? "");
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const head = columns.map((c) => esc(c.label)).join(",");
-  const body = rows
-    .map((r) => columns.map((c) => esc(c.value(r))).join(","))
-    .join("\n");
-  const csv = "﻿" + head + "\n" + body;
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+// ===== Excel Download =====
+export const downloadExcel = (rows, filename, columns) => {
+  const header = columns.map((c) => c.label);
+  const data = rows.map((r) => columns.map((c) => c.value(r)));
+  const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
+
+  // Auto column width
+  const colWidths = columns.map((c, ci) => ({
+    wch: Math.max(
+      c.label.length,
+      ...data.map((row) => String(row[ci] ?? "").length)
+    ) + 2,
+  }));
+  ws["!cols"] = colWidths;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Data");
+  XLSX.writeFile(wb, filename.endsWith(".xlsx") ? filename : filename + ".xlsx");
 };

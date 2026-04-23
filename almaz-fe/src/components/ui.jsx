@@ -161,7 +161,7 @@ export function PrimaryButton({ onClick, icon: Icon, children }) {
   );
 }
 
-export function MonthFilter({ value, onChange, months }) {
+export function MonthFilter({ value, onChange }) {
   const [year, monthStr] = value ? value.split('-') : ['', ''];
   const month = monthStr || '';
 
@@ -246,11 +246,11 @@ export function DownloadButton({ onClick, disabled }) {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      title="Download data sebagai CSV"
+      title="Download data sebagai Excel"
       className="inline-flex h-[38px] items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
     >
       <Download className="h-4 w-4" strokeWidth={2} />
-      Download CSV
+      Download Excel
     </button>
   );
 }

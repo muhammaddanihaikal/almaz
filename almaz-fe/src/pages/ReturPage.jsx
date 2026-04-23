@@ -7,8 +7,7 @@ import {
   filterByMonth,
   sortByDateDesc,
   getAvailableMonths,
-  downloadCSV,
-  getRokok,
+  downloadExcel,
 } from "../utils";
 import { PAGE_SIZE } from "../data";
 import {
@@ -32,6 +31,7 @@ export default function ReturPage({
   retur,
   rokokList,
   tokoList,
+  salesList,
   onAdd,
   onUpdate,
   onDelete,
@@ -47,9 +47,7 @@ export default function ReturPage({
 
   const rows = useMemo(() => {
     let filtered = filterByMonth(retur, bulan);
-    if (tokoFilter) {
-      filtered = filtered.filter((r) => r.toko === tokoFilter);
-    }
+    if (tokoFilter) filtered = filtered.filter((r) => r.toko === tokoFilter);
     return sortByDateDesc(filtered);
   }, [retur, bulan, tokoFilter]);
 
@@ -59,14 +57,16 @@ export default function ReturPage({
       r.items.map((it) => ({
         tanggal: r.tanggal,
         toko: r.toko,
+        sales: r.sales || "",
         rokok: it.rokok,
         qty: it.qty,
         alasan: r.alasan || "",
       }))
     );
-    downloadCSV(flat, `retur-${label}.csv`, [
+    downloadExcel(flat, `retur-${label}`, [
       { label: "Tanggal", value: (r) => r.tanggal },
       { label: "Toko",    value: (r) => r.toko },
+      { label: "Sales",   value: (r) => r.sales },
       { label: "Rokok",   value: (r) => r.rokok },
       { label: "Qty",     value: (r) => r.qty },
       { label: "Alasan",  value: (r) => r.alasan },
@@ -91,10 +91,7 @@ export default function ReturPage({
         action={
           <div className="flex flex-wrap items-center gap-2">
             <DownloadButton onClick={handleDownload} disabled={!rows.length} />
-            <PrimaryButton
-              onClick={() => { setEditing(null); setMode("add"); }}
-              icon={Plus}
-            >
+            <PrimaryButton onClick={() => { setEditing(null); setMode("add"); }} icon={Plus}>
               Input Retur
             </PrimaryButton>
           </div>
@@ -115,7 +112,7 @@ export default function ReturPage({
               placeholder="Semua Toko"
               options={[
                 { value: "", label: "Semua Toko" },
-                ...tokoList.map(t => ({ value: t.nama, label: t.nama }))
+                ...tokoList.map((t) => ({ value: t.nama, label: t.nama })),
               ]}
             />
           </div>
@@ -127,13 +124,10 @@ export default function ReturPage({
           key={`${bulan}-${tokoFilter}`}
           pageSize={PAGE_SIZE}
           columns={[
-            { key: "no", label: "No", render: (_, idx) => idx + 1 },
-            {
-              key: "tanggal",
-              label: "Tanggal",
-              render: (r) => fmtTanggal(r.tanggal),
-            },
-            { key: "toko", label: "Toko" },
+            { key: "no",      label: "No",      render: (_, idx) => idx + 1 },
+            { key: "tanggal", label: "Tanggal", render: (r) => fmtTanggal(r.tanggal) },
+            { key: "toko",    label: "Toko" },
+            { key: "sales",   label: "Sales",   render: (r) => r.sales || <span className="text-neutral-400">—</span> },
             {
               key: "items",
               label: "Barang Retur",
@@ -150,9 +144,7 @@ export default function ReturPage({
             {
               key: "alasan",
               label: "Alasan",
-              render: (r) => (
-                <span className="text-sm text-neutral-500">{r.alasan || "—"}</span>
-              ),
+              render: (r) => <span className="text-sm text-neutral-500">{r.alasan || "—"}</span>,
             },
             {
               key: "total_qty",
@@ -174,20 +166,12 @@ export default function ReturPage({
             },
           ]}
           rows={rows}
-          empty={
-            bulan
-              ? `Tidak ada retur di ${fmtBulan(bulan)}.`
-              : "Belum ada retur."
-          }
+          empty={bulan ? `Tidak ada retur di ${fmtBulan(bulan)}.` : "Belum ada retur."}
         />
       </Card>
 
       {detail && (
-        <Modal
-          title="Detail Retur"
-          onClose={() => setDetail(null)}
-          width="max-w-lg"
-        >
+        <Modal title="Detail Retur" onClose={() => setDetail(null)} width="max-w-lg">
           <ReturDetail record={detail} />
         </Modal>
       )}
@@ -203,6 +187,7 @@ export default function ReturPage({
             existing={retur}
             rokokList={rokokList}
             tokoList={tokoList}
+            salesList={salesList}
             onSubmit={(data) => {
               if (mode === "add") onAdd(data);
               else onUpdate(editing.id, data);
@@ -230,6 +215,12 @@ function ReturDetail({ record }) {
           <p className="text-xs text-neutral-500">Toko</p>
           <p className="font-medium">{record.toko}</p>
         </div>
+        {record.sales && (
+          <div>
+            <p className="text-xs text-neutral-500">Sales</p>
+            <p className="font-medium">{record.sales}</p>
+          </div>
+        )}
       </div>
 
       {record.alasan && (
@@ -270,18 +261,19 @@ function ReturDetail({ record }) {
   );
 }
 
-function ReturForm({ initial, existing, rokokList, tokoList, onSubmit, onCancel }) {
+function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit, onCancel }) {
   const today = new Date().toISOString().slice(0, 10);
   const [tanggal, setTanggal] = useState(initial?.tanggal || today);
-  const [toko, setToko] = useState(initial?.toko || "");
-  const [alasan, setAlasan] = useState(initial?.alasan || "");
+  const [toko, setToko]       = useState(initial?.toko || "");
+  const [sales, setSales]     = useState(initial?.sales || "");
+  const [alasan, setAlasan]   = useState(initial?.alasan || "");
   const [items, setItems] = useState(
     initial
       ? initial.items.map((it) => ({ rokok: it.rokok, qty: it.qty }))
       : [{ rokok: "", qty: "" }, { rokok: "", qty: "" }]
   );
 
-  const addItem = () => setItems([...items, { rokok: "", qty: "" }]);
+  const addItem    = () => setItems([...items, { rokok: "", qty: "" }]);
   const removeItem = (idx) => setItems(items.filter((_, i) => i !== idx));
   const updateItem = (idx, field, val) =>
     setItems(items.map((item, i) => (i === idx ? { ...item, [field]: val } : item)));
@@ -306,31 +298,43 @@ function ReturForm({ initial, existing, rokokList, tokoList, onSubmit, onCancel 
     onSubmit({
       tanggal,
       toko,
+      sales,
       alasan: alasan.trim(),
-      items: items.map((it) => ({
-        rokok: it.rokok,
-        qty: Number(it.qty),
-      })),
+      items: items.map((it) => ({ rokok: it.rokok, qty: Number(it.qty) })),
     });
   };
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <Field label="Tanggal">
-        <input
-          type="date"
-          value={tanggal}
-          onChange={(e) => setTanggal(e.target.value)}
-          className={inputCls}
-          required
-        />
-      </Field>
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Tanggal">
+          <input
+            type="date"
+            value={tanggal}
+            onChange={(e) => setTanggal(e.target.value)}
+            className={inputCls}
+            required
+          />
+        </Field>
+        <Field label="Sales (opsional)">
+          <SearchableSelect
+            value={sales}
+            onChange={(e) => setSales(e.target.value)}
+            placeholder="Pilih sales"
+            options={[
+              { value: "", label: "— Tidak dipilih —" },
+              ...salesList.map((s) => ({ value: s.nama, label: s.nama })),
+            ]}
+          />
+        </Field>
+      </div>
+
       <Field label="Toko">
         <SearchableSelect
           value={toko}
           onChange={(e) => setToko(e.target.value)}
           placeholder="Pilih toko"
-          options={tokoList.map(t => ({ value: t.nama, label: t.nama }))}
+          options={tokoList.map((t) => ({ value: t.nama, label: t.nama }))}
         />
         {isDuplicate && (
           <p className="mt-1 text-xs text-red-600">
@@ -343,58 +347,46 @@ function ReturForm({ initial, existing, rokokList, tokoList, onSubmit, onCancel 
         <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
           Daftar Barang Retur
         </span>
-
         <div className="space-y-3">
-          {items.map((item, idx) => {
-
-
-            return (
-              <div key={idx} className="flex items-end gap-3">
-                <div className="flex-1">
-                  <Field label={idx === 0 ? "Rokok" : ""}>
-                    <SelectInput
-                      value={item.rokok}
-                      onChange={(e) => updateItem(idx, "rokok", e.target.value)}
-                      required
-                    >
-                      <option value="">Pilih rokok</option>
-                      {rokokList.map((r) => (
-                        <option key={r.id} value={r.nama}>
-                          {r.nama} (stok: {r.stok ?? 0})
-                        </option>
-                      ))}
-                    </SelectInput>
-                  </Field>
-                </div>
-                <div className="w-24">
-                  <Field label={idx === 0 ? "Qty" : ""}>
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.qty}
-                      onChange={(e) => updateItem(idx, "qty", e.target.value)}
-                      placeholder="0"
-                      className={inputCls}
-                      required
-                    />
-
-                  </Field>
-                </div>
-                {items.length > 1 && (
-                  <div className="pb-1">
-                    <IconButton
-                      icon={Trash2}
-                      onClick={() => removeItem(idx)}
-                      variant="danger"
-                      label="Hapus baris"
-                    />
-                  </div>
-                )}
+          {items.map((item, idx) => (
+            <div key={idx} className="flex items-end gap-3">
+              <div className="flex-1">
+                <Field label={idx === 0 ? "Rokok" : ""}>
+                  <SelectInput
+                    value={item.rokok}
+                    onChange={(e) => updateItem(idx, "rokok", e.target.value)}
+                    required
+                  >
+                    <option value="">Pilih rokok</option>
+                    {rokokList.map((r) => (
+                      <option key={r.id} value={r.nama}>
+                        {r.nama} (stok: {r.stok ?? 0})
+                      </option>
+                    ))}
+                  </SelectInput>
+                </Field>
               </div>
-            );
-          })}
+              <div className="w-24">
+                <Field label={idx === 0 ? "Qty" : ""}>
+                  <input
+                    type="number"
+                    min="1"
+                    value={item.qty}
+                    onChange={(e) => updateItem(idx, "qty", e.target.value)}
+                    placeholder="0"
+                    className={inputCls}
+                    required
+                  />
+                </Field>
+              </div>
+              {items.length > 1 && (
+                <div className="pb-1">
+                  <IconButton icon={Trash2} onClick={() => removeItem(idx)} variant="danger" label="Hapus baris" />
+                </div>
+              )}
+            </div>
+          ))}
         </div>
-
         <button
           type="button"
           onClick={addItem}
