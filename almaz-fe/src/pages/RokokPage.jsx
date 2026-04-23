@@ -60,7 +60,14 @@ export default function RokokPage({ rokokList, onAdd, onUpdate, onDelete }) {
         <DataTable
           pageSize={PAGE_SIZE}
           columns={[
+            { key: "no", label: "No", render: (_, idx) => idx + 1 },
             { key: "nama", label: "Nama Rokok" },
+            {
+              key: "stok",
+              label: "Stok",
+              align: "right",
+              render: (r) => r.stok ?? 0,
+            },
             {
               key: "harga_beli",
               label: "Harga Beli",
@@ -131,6 +138,7 @@ function RokokForm({ initial, onSubmit, onCancel }) {
   const [hargaJual, setHargaJual] = useState(
     initial?.harga_jual?.toString() || ""
   );
+  const [stok, setStok] = useState(initial?.stok?.toString() || "0");
 
   const hb = Number(hargaBeli);
   const hj = Number(hargaJual);
@@ -139,7 +147,9 @@ function RokokForm({ initial, onSubmit, onCancel }) {
     hargaBeli !== "" &&
     hargaJual !== "" &&
     hb >= 0 &&
-    hj >= 0;
+    hj >= 0 &&
+    stok !== "" &&
+    Number(stok) >= 0;
 
   const margin = valid ? hj - hb : 0;
 
@@ -150,6 +160,7 @@ function RokokForm({ initial, onSubmit, onCancel }) {
       nama: nama.trim(),
       harga_beli: hb,
       harga_jual: hj,
+      stok: Number(stok),
     });
   };
 
@@ -190,6 +201,17 @@ function RokokForm({ initial, onSubmit, onCancel }) {
           />
         </Field>
       </div>
+      <Field label="Stok">
+        <input
+          type="number"
+          min="0"
+          value={stok}
+          onChange={(e) => setStok(e.target.value)}
+          placeholder="0"
+          className={inputCls}
+          required
+        />
+      </Field>
       {valid && (
         <div
           className={

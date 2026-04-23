@@ -15,23 +15,39 @@ export default function App() {
   const [distribusi, setDistribusi] = useState(DISTRIBUSI_AWAL);
   const [retur, setRetur] = useState(RETUR_AWAL);
 
-  // --- CRUD Rokok (cascade nama ke distribusi & retur saat edit) ---
+  // Adjust stok: distribusi decreases (sign=-1), retur increases (sign=+1)
+  const syncStok = (prevItems, nextItems, sign) => {
+    setRokokList((prev) =>
+      prev.map((r) => {
+        const prevQty = (prevItems || [])
+          .filter((i) => i.rokok === r.nama)
+          .reduce((s, i) => s + Number(i.qty), 0);
+        const nextQty = (nextItems || [])
+          .filter((i) => i.rokok === r.nama)
+          .reduce((s, i) => s + Number(i.qty), 0);
+        const delta = sign * (nextQty - prevQty);
+        return delta ? { ...r, stok: Math.max(0, (r.stok ?? 0) + delta) } : r;
+      })
+    );
+  };
+
+  // --- CRUD Rokok (cascade nama ke items saat rename) ---
   const addRokok = (data) =>
     setRokokList((prev) => [...prev, { ...data, id: newId() }]);
 
   const updateRokok = (id, data) => {
     const old = rokokList.find((r) => r.id === id);
-    setRokokList((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, ...data } : r))
-    );
+    setRokokList((prev) => prev.map((r) => (r.id === id ? { ...r, ...data } : r)));
     if (old && old.nama !== data.nama) {
+      const rename = (items) =>
+        items.map((it) =>
+          it.rokok === old.nama ? { ...it, rokok: data.nama } : it
+        );
       setDistribusi((prev) =>
-        prev.map((d) =>
-          d.rokok === old.nama ? { ...d, rokok: data.nama } : d
-        )
+        prev.map((d) => ({ ...d, items: rename(d.items) }))
       );
       setRetur((prev) =>
-        prev.map((r) => (r.rokok === old.nama ? { ...r, rokok: data.nama } : r))
+        prev.map((r) => ({ ...r, items: rename(r.items) }))
       );
     }
   };
@@ -39,22 +55,18 @@ export default function App() {
   const deleteRokok = (id) =>
     setRokokList((prev) => prev.filter((r) => r.id !== id));
 
-  // --- CRUD Toko ---
+  // --- CRUD Toko (cascade nama) ---
   const addToko = (data) =>
     setTokoList((prev) => [...prev, { ...data, id: newId() }]);
 
   const updateToko = (id, data) => {
     const old = tokoList.find((t) => t.id === id);
-    setTokoList((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, ...data } : t))
-    );
+    setTokoList((prev) => prev.map((t) => (t.id === id ? { ...t, ...data } : t)));
     if (old && old.nama !== data.nama) {
-      setDistribusi((prev) =>
-        prev.map((d) => (d.toko === old.nama ? { ...d, toko: data.nama } : d))
-      );
-      setRetur((prev) =>
-        prev.map((r) => (r.toko === old.nama ? { ...r, toko: data.nama } : r))
-      );
+      const renamedToko = (rows) =>
+        rows.map((r) => (r.toko === old.nama ? { ...r, toko: data.nama } : r));
+      setDistribusi((prev) => renamedToko(prev));
+      setRetur((prev) => renamedToko(prev));
     }
   };
 
@@ -62,18 +74,40 @@ export default function App() {
     setTokoList((prev) => prev.filter((t) => t.id !== id));
 
   // --- CRUD Distribusi ---
-  const updateDistribusi = (id, data) =>
-    setDistribusi((prev) => prev.map((d) => (d.id === id ? { ...d, ...data } : d)));
+  const addDistribusi = (data) => {
+    setDistribusi((prev) => [{ ...data, id: newId() }, ...prev]);
+    syncStok([], data.items, -1);
+  };
 
-  const deleteDistribusi = (id) =>
+  const updateDistribusi = (id, data) => {
+    const old = distribusi.find((d) => d.id === id);
+    setDistribusi((prev) => prev.map((d) => (d.id === id ? { ...d, ...data } : d)));
+    syncStok(old?.items || [], data.items, -1);
+  };
+
+  const deleteDistribusi = (id) => {
+    const old = distribusi.find((d) => d.id === id);
     setDistribusi((prev) => prev.filter((d) => d.id !== id));
+    syncStok(old?.items || [], [], -1);
+  };
 
   // --- CRUD Retur ---
-  const updateRetur = (id, data) =>
-    setRetur((prev) => prev.map((r) => (r.id === id ? { ...r, ...data } : r)));
+  const addRetur = (data) => {
+    setRetur((prev) => [{ ...data, id: newId() }, ...prev]);
+    syncStok([], data.items, +1);
+  };
 
-  const deleteRetur = (id) =>
+  const updateRetur = (id, data) => {
+    const old = retur.find((r) => r.id === id);
+    setRetur((prev) => prev.map((r) => (r.id === id ? { ...r, ...data } : r)));
+    syncStok(old?.items || [], data.items, +1);
+  };
+
+  const deleteRetur = (id) => {
+    const old = retur.find((r) => r.id === id);
     setRetur((prev) => prev.filter((r) => r.id !== id));
+    syncStok(old?.items || [], [], +1);
+  };
 
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900">
@@ -92,12 +126,7 @@ export default function App() {
             distribusi={distribusi}
             rokokList={rokokList}
             tokoList={tokoList}
-            onAdd={(rows) => {
-              const newRows = Array.isArray(rows)
-                ? rows.map((r) => ({ ...r, id: newId() }))
-                : [{ ...rows, id: newId() }];
-              setDistribusi((prev) => [...newRows, ...prev]);
-            }}
+            onAdd={addDistribusi}
             onUpdate={updateDistribusi}
             onDelete={deleteDistribusi}
           />
@@ -107,12 +136,7 @@ export default function App() {
             retur={retur}
             rokokList={rokokList}
             tokoList={tokoList}
-            onAdd={(rows) => {
-              const newRows = Array.isArray(rows)
-                ? rows.map((r) => ({ ...r, id: newId() }))
-                : [{ ...rows, id: newId() }];
-              setRetur((prev) => [...newRows, ...prev]);
-            }}
+            onAdd={addRetur}
             onUpdate={updateRetur}
             onDelete={deleteRetur}
           />

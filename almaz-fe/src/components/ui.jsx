@@ -1,6 +1,9 @@
+import { useState, useRef, useEffect } from "react";
 import {
   Calendar,
+  ChevronDown,
   Download,
+  Eye,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -8,6 +11,97 @@ import { fmtBulan } from "../utils";
 
 export const inputCls =
   "w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none transition focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10";
+
+export function SelectInput({ value, onChange, required, children }) {
+  return (
+    <div className="relative">
+      <select
+        value={value}
+        onChange={onChange}
+        required={required}
+        className={inputCls + " appearance-none pr-8"}
+      >
+        {children}
+      </select>
+      <ChevronDown
+        className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
+        strokeWidth={2}
+      />
+    </div>
+  );
+}
+
+export function SearchableSelect({ value, onChange, options, placeholder }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const wrapperRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredOptions = options.filter(opt => 
+    opt.label.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const selectedOption = options.find(opt => String(opt.value) === String(value));
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <div 
+        className={`${inputCls} cursor-pointer flex justify-between items-center pr-2 ${!selectedOption && placeholder ? 'text-neutral-500' : ''}`}
+        onClick={() => { setIsOpen(!isOpen); setSearch(""); }}
+      >
+        <span className="truncate">
+          {selectedOption ? selectedOption.label : placeholder || 'Pilih...'}
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-neutral-400" strokeWidth={2} />
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-50 mt-1 w-full rounded-lg border border-neutral-200 bg-white py-1 shadow-lg">
+          <div className="px-2 pb-2 pt-1 sticky top-0 bg-white border-b border-neutral-100">
+            <input
+              type="text"
+              autoFocus
+              className="w-full rounded-md border border-neutral-200 px-3 py-1.5 text-sm outline-none transition focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
+              placeholder="Cari..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          <div className="max-h-60 overflow-y-auto pt-1">
+            {filteredOptions.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-neutral-500">Tidak ditemukan</div>
+            ) : (
+              filteredOptions.map((opt) => (
+                <div
+                  key={opt.value}
+                  className={`cursor-pointer px-3 py-2 text-sm transition-colors hover:bg-neutral-100 ${
+                    String(value) === String(opt.value) ? 'bg-neutral-50 font-medium text-neutral-900' : 'text-neutral-700'
+                  }`}
+                  onClick={() => {
+                    onChange({ target: { value: opt.value } });
+                    setIsOpen(false);
+                  }}
+                >
+                  {opt.label}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function Field({ label, children }) {
   return (
@@ -68,32 +162,80 @@ export function PrimaryButton({ onClick, icon: Icon, children }) {
 }
 
 export function MonthFilter({ value, onChange, months }) {
+  const [year, monthStr] = value ? value.split('-') : ['', ''];
+  const month = monthStr || '';
+
+  const handleMonthChange = (newMonth) => {
+    if (!newMonth) {
+      onChange(year ? year : '');
+    } else {
+      const y = year || new Date().getFullYear().toString();
+      onChange(`${y}-${newMonth}`);
+    }
+  };
+
+  const handleYearChange = (newYear) => {
+    if (!newYear) {
+      onChange('');
+    } else {
+      onChange(month ? `${newYear}-${month}` : newYear);
+    }
+  };
+
   return (
-    <div className="relative">
-      <Calendar
-        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
-        strokeWidth={2}
-      />
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-[38px] cursor-pointer appearance-none rounded-lg border border-neutral-200 bg-white pl-9 pr-8 text-sm font-medium text-neutral-800 outline-none transition hover:border-neutral-300 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
-      >
-        <option value="">Semua Bulan</option>
-        {months.map((m) => (
-          <option key={m} value={m}>
-            {fmtBulan(m)}
-          </option>
-        ))}
-      </select>
-      <svg
-        className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
-        viewBox="0 0 20 20"
-        fill="currentColor"
-        aria-hidden="true"
-      >
-        <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.06l3.71-3.83a.75.75 0 1 1 1.08 1.04l-4.25 4.39a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06z" />
-      </svg>
+    <div className="flex gap-2">
+      <div className="relative">
+        <Calendar
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
+          strokeWidth={2}
+        />
+        <select
+          value={month}
+          onChange={(e) => handleMonthChange(e.target.value)}
+          className="h-[38px] cursor-pointer appearance-none rounded-lg border border-neutral-200 bg-white pl-9 pr-8 text-sm font-medium text-neutral-800 outline-none transition hover:border-neutral-300 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
+        >
+          <option value="">Bulan</option>
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => {
+            const monthStr = String(m).padStart(2, '0');
+            return (
+              <option key={m} value={monthStr}>
+                {fmtBulan(`2026-${monthStr}`).split(' ')[0]}
+              </option>
+            );
+          })}
+        </select>
+        <svg
+          className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.06l3.71-3.83a.75.75 0 1 1 1.08 1.04l-4.25 4.39a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06z" />
+        </svg>
+      </div>
+
+      <div className="relative">
+        <select
+          value={year}
+          onChange={(e) => handleYearChange(e.target.value)}
+          className="h-[38px] cursor-pointer appearance-none rounded-lg border border-neutral-200 bg-white px-3 pr-8 text-sm font-medium text-neutral-800 outline-none transition hover:border-neutral-300 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
+        >
+          <option value="">Tahun</option>
+          {[2026, 2027, 2028, 2029, 2030].map((y) => (
+            <option key={y} value={String(y)}>
+              {y}
+            </option>
+          ))}
+        </select>
+        <svg
+          className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.06l3.71-3.83a.75.75 0 1 1 1.08 1.04l-4.25 4.39a.75.75 0 0 1-1.08 0L5.21 8.27a.75.75 0 0 1 .02-1.06z" />
+        </svg>
+      </div>
     </div>
   );
 }
@@ -133,16 +275,12 @@ export function IconButton({ onClick, icon: Icon, label, variant }) {
   );
 }
 
-export function RowActions({ onEdit, onDelete }) {
+export function RowActions({ onDetail, onEdit, onDelete }) {
   return (
     <div className="flex justify-end gap-1">
-      <IconButton onClick={onEdit} icon={Pencil} label="Edit" />
-      <IconButton
-        onClick={onDelete}
-        icon={Trash2}
-        label="Hapus"
-        variant="danger"
-      />
+      {onDetail && <IconButton onClick={onDetail} icon={Eye}    label="Detail" />}
+      {onEdit   && <IconButton onClick={onEdit}   icon={Pencil} label="Edit" />}
+      {onDelete && <IconButton onClick={onDelete} icon={Trash2} label="Hapus" variant="danger" />}
     </div>
   );
 }

@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-export default function DataTable({ columns, rows, empty, pageSize }) {
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+
+export default function DataTable({ columns, rows, empty, pageSize: defaultPageSize }) {
+  const hasPagination = !!defaultPageSize;
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(defaultPageSize || 9999);
   const total = rows?.length ?? 0;
-  const totalPages = pageSize ? Math.max(1, Math.ceil(total / pageSize)) : 1;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   useEffect(() => {
     if (page > totalPages) setPage(1);
@@ -18,7 +22,7 @@ export default function DataTable({ columns, rows, empty, pageSize }) {
     );
   }
 
-  const visible = pageSize
+  const visible = hasPagination
     ? rows.slice((page - 1) * pageSize, page * pageSize)
     : rows;
 
@@ -42,88 +46,95 @@ export default function DataTable({ columns, rows, empty, pageSize }) {
             </tr>
           </thead>
           <tbody>
-            {visible.map((row) => (
-              <tr
-                key={row.id}
-                className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50/60"
-              >
-                {columns.map((c) => (
-                  <td
-                    key={c.key}
-                    className={
-                      "px-3 py-3 text-neutral-800 " +
-                      (c.align === "right" ? "text-right tabular-nums" : "")
-                    }
-                  >
-                    {c.render ? c.render(row) : row[c.key]}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {visible.map((row, visIdx) => {
+              const rowIndex = (page - 1) * pageSize + visIdx;
+              return (
+                <tr
+                  key={row.id}
+                  className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50/60"
+                >
+                  {columns.map((c) => (
+                    <td
+                      key={c.key}
+                      className={
+                        "px-3 py-3 text-neutral-800 " +
+                        (c.align === "right" ? "text-right tabular-nums" : "")
+                      }
+                    >
+                      {c.render ? c.render(row, rowIndex) : row[c.key]}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
-      {pageSize && totalPages > 1 && (
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          total={total}
-          pageSize={pageSize}
-          onChange={setPage}
-        />
-      )}
-    </div>
-  );
-}
-
-function Pagination({ page, totalPages, total, pageSize, onChange }) {
-  const start = (page - 1) * pageSize + 1;
-  const end = Math.min(page * pageSize, total);
-  const pages = buildPageNumbers(page, totalPages);
-
-  return (
-    <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-3">
-      <div className="text-xs text-neutral-500">
-        Menampilkan{" "}
-        <span className="font-medium text-neutral-700">{start}</span>–
-        <span className="font-medium text-neutral-700">{end}</span> dari{" "}
-        <span className="font-medium text-neutral-700">{total}</span> data
-      </div>
-      <div className="flex items-center gap-1">
-        <PageNavButton
-          onClick={() => onChange(page - 1)}
-          disabled={page === 1}
-          icon={ChevronLeft}
-          label="Sebelumnya"
-        />
-        {pages.map((p, i) =>
-          p === "..." ? (
-            <span key={`gap-${i}`} className="px-2 text-xs text-neutral-400">
-              …
+      {hasPagination && (
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-3">
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-neutral-500">
+            Menampilkan{" "}
+            <span className="font-medium text-neutral-700">
+              {(page - 1) * pageSize + 1}
             </span>
-          ) : (
-            <button
-              key={p}
-              onClick={() => onChange(p)}
-              className={
-                "h-8 min-w-[32px] rounded-md px-2 text-xs font-medium transition " +
-                (p === page
-                  ? "bg-neutral-900 text-white"
-                  : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900")
-              }
-            >
-              {p}
-            </button>
-          )
+            –
+            <span className="font-medium text-neutral-700">
+              {Math.min(page * pageSize, total)}
+            </span>{" "}
+            dari{" "}
+            <span className="font-medium text-neutral-700">{total}</span> data
+          </span>
+          <select
+            value={pageSize}
+            onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+            className="h-7 rounded-md border border-neutral-200 bg-white px-2 text-xs text-neutral-700 outline-none focus:border-neutral-400"
+          >
+            {PAGE_SIZE_OPTIONS.map((n) => (
+              <option key={n} value={n}>{n} / hal</option>
+            ))}
+          </select>
+        </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center gap-1">
+            <PageNavButton
+              onClick={() => setPage(page - 1)}
+              disabled={page === 1}
+              icon={ChevronLeft}
+              label="Sebelumnya"
+            />
+            {buildPageNumbers(page, totalPages).map((p, i) =>
+              p === "..." ? (
+                <span key={`gap-${i}`} className="px-2 text-xs text-neutral-400">
+                  …
+                </span>
+              ) : (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={
+                    "h-8 min-w-[32px] rounded-md px-2 text-xs font-medium transition " +
+                    (p === page
+                      ? "bg-neutral-900 text-white"
+                      : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900")
+                  }
+                >
+                  {p}
+                </button>
+              )
+            )}
+            <PageNavButton
+              onClick={() => setPage(page + 1)}
+              disabled={page === totalPages}
+              icon={ChevronRight}
+              label="Selanjutnya"
+            />
+          </div>
         )}
-        <PageNavButton
-          onClick={() => onChange(page + 1)}
-          disabled={page === totalPages}
-          icon={ChevronRight}
-          label="Selanjutnya"
-        />
       </div>
+      )}
     </div>
   );
 }

@@ -22,6 +22,7 @@ export const currentMonth = () => new Date().toISOString().slice(0, 7);
 export const fmtBulan = (m) => {
   if (!m) return "Semua Bulan";
   const [y, mo] = m.split("-");
+  if (!mo) return y;
   const d = new Date(Number(y), Number(mo) - 1, 1);
   return d.toLocaleDateString("id-ID", {
     month: "long",
@@ -49,11 +50,11 @@ export const getAvailableMonths = (...rowSets) => {
 export const getRokok = (rokokList, nama) =>
   rokokList.find((r) => r.nama === nama);
 
-export const hitungProfit = (rokokList, row) => {
-  const r = getRokok(rokokList, row.rokok);
-  if (!r) return 0;
-  return row.qty * (r.harga_jual - r.harga_beli);
-};
+export const hitungProfit = (rokokList, distribusi) =>
+  (distribusi.items || []).reduce((sum, item) => {
+    const r = getRokok(rokokList, item.rokok);
+    return r ? sum + item.qty * (r.harga_jual - r.harga_beli) : sum;
+  }, 0);
 
 export const newId = () => Date.now() + Math.floor(Math.random() * 1000);
 

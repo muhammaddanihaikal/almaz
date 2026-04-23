@@ -59,7 +59,15 @@ export default function TokoPage({ tokoList, onAdd, onUpdate, onDelete }) {
         <DataTable
           pageSize={PAGE_SIZE}
           columns={[
+            { key: "no", label: "No", render: (_, idx) => idx + 1 },
             { key: "nama", label: "Nama Toko" },
+            {
+              key: "alamat",
+              label: "Alamat",
+              render: (r) => (
+                <span className="text-neutral-500">{r.alamat || "—"}</span>
+              ),
+            },
             {
               key: "actions",
               label: "",
@@ -102,12 +110,13 @@ export default function TokoPage({ tokoList, onAdd, onUpdate, onDelete }) {
 
 function TokoForm({ initial, onSubmit, onCancel }) {
   const [nama, setNama] = useState(initial?.nama || "");
+  const [alamat, setAlamat] = useState(initial?.alamat || "");
   const valid = nama.trim().length > 0;
 
   const submit = (e) => {
     e.preventDefault();
     if (!valid) return;
-    onSubmit({ nama: nama.trim() });
+    onSubmit({ nama: nama.trim(), alamat: alamat.trim() });
   };
 
   return (
@@ -121,6 +130,15 @@ function TokoForm({ initial, onSubmit, onCancel }) {
           className={inputCls}
           autoFocus
           required
+        />
+      </Field>
+      <Field label="Alamat">
+        <input
+          type="text"
+          value={alamat}
+          onChange={(e) => setAlamat(e.target.value)}
+          placeholder="Misal: Jl. Mawar No. 12, Bandung"
+          className={inputCls}
         />
       </Field>
       <FormActions
