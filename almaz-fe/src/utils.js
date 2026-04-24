@@ -75,7 +75,7 @@ export const newId = () => Date.now() + Math.floor(Math.random() * 1000);
 
 // ===== Excel Download =====
 // value(row, index) — index is 0-based row number (excludes meta/header rows)
-const buildSheet = (rows, columns, meta = []) => {
+const buildSheet = (rows, columns, meta = [], options = {}) => {
   const header = columns.map((c) => c.label);
   const data = rows.map((r, i) => columns.map((c) => c.value(r, i)));
 
@@ -100,6 +100,17 @@ const buildSheet = (rows, columns, meta = []) => {
     colWidths[1].wch = Math.max(colWidths[1].wch, ...meta.map(([, v]) => String(v ?? "").length + 2));
   }
   ws["!cols"] = colWidths;
+
+  if (options.centered && ws["!ref"]) {
+    const range = XLSX.utils.decode_range(ws["!ref"]);
+    for (let R = range.s.r; R <= range.e.r; R++) {
+      for (let C = range.s.c; C <= range.e.c; C++) {
+        const addr = XLSX.utils.encode_cell({ r: R, c: C });
+        if (ws[addr]) ws[addr].s = { alignment: { horizontal: "center", vertical: "center" } };
+      }
+    }
+  }
+
   return ws;
 };
 
@@ -110,11 +121,11 @@ export const downloadExcel = (rows, filename, columns, meta = []) => {
   XLSX.writeFile(wb, filename.endsWith(".xlsx") ? filename : filename + ".xlsx");
 };
 
-// Multi-sheet download: sheets = [{ name, rows, columns, meta? }]
+// Multi-sheet download: sheets = [{ name, rows, columns, meta?, centered? }]
 export const downloadExcelMultiSheet = (sheets, filename) => {
   const wb = XLSX.utils.book_new();
-  sheets.forEach(({ name, rows, columns, meta = [] }) => {
-    XLSX.utils.book_append_sheet(wb, buildSheet(rows, columns, meta), name);
+  sheets.forEach(({ name, rows, columns, meta = [], centered = false }) => {
+    XLSX.utils.book_append_sheet(wb, buildSheet(rows, columns, meta, { centered }), name);
   });
   XLSX.writeFile(wb, filename.endsWith(".xlsx") ? filename : filename + ".xlsx");
 };

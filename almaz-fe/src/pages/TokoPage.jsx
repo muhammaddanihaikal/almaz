@@ -69,7 +69,7 @@ export default function TokoPage({ tokoList, distribusi, retur, onAdd, onUpdate,
             { key: "nama", label: "Nama Toko" },
             {
               key: "tipe_harga",
-              label: "Tipe Harga",
+              label: "Tipe",
               render: (r) => <span className="capitalize">{r.tipe_harga}</span>,
             },
             {
@@ -155,23 +155,22 @@ function TokoForm({ initial, onSubmit, onCancel }) {
           required
         />
       </Field>
-      <Field label="Tipe Harga">
+      <Field label="Tipe">
         <SelectInput
           value={tipeHarga}
           onChange={(e) => setTipeHarga(e.target.value)}
         >
           <option value="grosir">Grosir</option>
           <option value="toko">Toko</option>
-          <option value="perorangan">Perorangan</option>
         </SelectInput>
       </Field>
       <Field label="Alamat">
-        <input
-          type="text"
+        <textarea
           value={alamat}
           onChange={(e) => setAlamat(e.target.value)}
           placeholder="Misal: Jl. Mawar No. 12, Bandung"
           className={inputCls}
+          rows={3}
         />
       </Field>
       <FormActions

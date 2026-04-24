@@ -33,7 +33,7 @@ export function SelectInput({ value, onChange, required, children }) {
   );
 }
 
-export function SearchableSelect({ value, onChange, options, placeholder }) {
+export function SearchableSelect({ value, onChange, options, placeholder, disabled }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const wrapperRef = useRef(null);
@@ -57,8 +57,12 @@ export function SearchableSelect({ value, onChange, options, placeholder }) {
   return (
     <div ref={wrapperRef} className="relative">
       <div 
-        className={`${inputCls} cursor-pointer flex justify-between items-center pr-2 ${!selectedOption && placeholder ? 'text-neutral-500' : ''}`}
-        onClick={() => { setIsOpen(!isOpen); setSearch(""); }}
+        className={`${inputCls} flex justify-between items-center pr-2 ${!selectedOption && placeholder ? 'text-neutral-500' : ''} ${disabled ? 'cursor-not-allowed bg-neutral-100 opacity-70' : 'cursor-pointer'}`}
+        onClick={() => {
+          if (disabled) return;
+          setIsOpen(!isOpen);
+          setSearch("");
+        }}
       >
         <span className="truncate">
           {selectedOption ? selectedOption.label : placeholder || 'Pilih...'}

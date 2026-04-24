@@ -76,14 +76,19 @@ export default function DistribusiPage({
       })
     );
 
-    // Summary per tanggal
+    // Summary per tanggal with per-rokok breakdown
+    const allRokok = [...new Set(rows.flatMap((d) => d.items.map((it) => it.rokok)))].sort((a, b) => a.localeCompare(b, "id"));
     const summaryMap = {};
     rows.forEach((d) => {
-      if (!summaryMap[d.tanggal]) summaryMap[d.tanggal] = { tanggal: d.tanggal, transaksi: 0, total_qty: 0, total_revenue: 0 };
+      if (!summaryMap[d.tanggal]) {
+        summaryMap[d.tanggal] = { tanggal: d.tanggal, transaksi: 0, total_qty: 0, total_revenue: 0 };
+        allRokok.forEach((nama) => { summaryMap[d.tanggal][nama] = 0; });
+      }
       summaryMap[d.tanggal].transaksi++;
       d.items.forEach((it) => {
         summaryMap[d.tanggal].total_qty += it.qty;
         summaryMap[d.tanggal].total_revenue += it.qty * it.harga;
+        summaryMap[d.tanggal][it.rokok] = (summaryMap[d.tanggal][it.rokok] || 0) + it.qty;
       });
     });
     const summaryRows = sortByDateDesc(Object.values(summaryMap));
@@ -112,10 +117,12 @@ export default function DistribusiPage({
             { label: "No",               value: (_, i) => i + 1 },
             { label: "Tanggal",          value: (r) => r.tanggal },
             { label: "Transaksi",        value: (r) => r.transaksi },
+            ...allRokok.map((nama) => ({ label: nama, value: (r) => r[nama] || 0 })),
             { label: "Total Qty",        value: (r) => r.total_qty },
             { label: "Total Pendapatan", value: (r) => fmtIDR(r.total_revenue) },
           ],
           meta,
+          centered: true,
         },
         {
           name: "Detail",
@@ -385,12 +392,10 @@ function TipeBadge({ tipe }) {
   );
 }
 
-const TIPE_MAP = { toko: "Toko", grosir: "Grosir", perorangan: "Perorangan" };
-
 function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onSubmit, onCancel }) {
   const today = new Date().toISOString().slice(0, 10);
   const [tanggal, setTanggal]           = useState(initial?.tanggal || today);
-  const [isPerorangan, setIsPerorangan] = useState(initial?.tipe_penjualan === "Perorangan");
+  const [tipePenjualan, setTipePenjualan] = useState(initial?.tipe_penjualan || "");
   const [toko, setToko]                 = useState(initial?.tipe_penjualan === "Perorangan" ? "" : (initial?.toko || ""));
   const [sales, setSales]               = useState(initial?.sales || "");
   const [tanggalBayar, setTanggalBayar] = useState(initial?.tanggal_bayar || "");
@@ -405,12 +410,10 @@ function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onS
   const updateItem = (idx, field, val) =>
     setItems(items.map((item, i) => (i === idx ? { ...item, [field]: val } : item)));
 
-  const tokoObj      = tokoList.find((x) => x.nama === toko);
-  const computedTipe = isPerorangan ? "Perorangan" : (tokoObj ? TIPE_MAP[tokoObj.tipe_harga] || "" : "");
-  const priceProp    = isPerorangan ? "harga_perorangan" : (["harga_grosir", "harga_toko", "harga_perorangan"].includes("harga_" + (tokoObj?.tipe_harga || "")) ? "harga_" + tokoObj.tipe_harga : "harga_toko");
+  const priceProp    = tipePenjualan ? "harga_" + tipePenjualan.toLowerCase() : "harga_toko";
 
   const isDuplicate =
-    !isPerorangan && tanggal && toko &&
+    tipePenjualan !== "Perorangan" && tanggal && toko &&
     (existing || []).some((d) => d.tanggal === tanggal && d.toko === toko && d.id !== initial?.id);
 
   const validItems = items.filter((it) => it.rokok && Number(it.qty) > 0);
@@ -419,8 +422,8 @@ function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onS
   const valid =
     !isDuplicate &&
     tanggal &&
-    (isPerorangan || !!toko) &&
-    !!computedTipe &&
+    (tipePenjualan === "Perorangan" || !!toko) &&
+    !!tipePenjualan &&
     !!sales &&
     (!adaHutang || !!tanggalBayar) &&
     validItems.length > 0;
@@ -430,8 +433,8 @@ function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onS
     if (!valid) return;
     onSubmit({
       tanggal,
-      toko: isPerorangan ? "" : toko,
-      tipe_penjualan: computedTipe,
+      toko: tipePenjualan === "Perorangan" ? "" : toko,
+      tipe_penjualan: tipePenjualan,
       sales,
       tanggal_bayar: adaHutang ? tanggalBayar : null,
       items: validItems.map((it) => ({
@@ -455,36 +458,44 @@ function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onS
             required
           />
         </Field>
-        <div className="flex items-end pb-1">
-          <label className="flex cursor-pointer select-none items-center gap-2.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50">
-            <input
-              type="checkbox"
-              checked={isPerorangan}
-              onChange={(e) => { setIsPerorangan(e.target.checked); if (e.target.checked) setToko(""); }}
-              className="h-4 w-4 rounded border-neutral-300 accent-neutral-900"
-            />
-            Perorangan
-          </label>
-        </div>
+        <Field label="Tipe Penjualan">
+          <SelectInput
+            value={tipePenjualan}
+            onChange={(e) => {
+              setTipePenjualan(e.target.value);
+              setToko("");
+            }}
+          >
+            <option value="">Pilih Tipe Penjualan</option>
+            <option value="Toko">Toko</option>
+            <option value="Grosir">Grosir</option>
+            <option value="Perorangan">Perorangan</option>
+          </SelectInput>
+        </Field>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {!isPerorangan ? (
-          <Field label={<span className="flex items-center gap-2">Toko {tokoObj && <TipeBadge tipe={TIPE_MAP[tokoObj.tipe_harga]} />}</span>}>
+        {tipePenjualan !== "Perorangan" ? (
+          <Field label="Toko">
             <SearchableSelect
               value={toko}
               onChange={(e) => setToko(e.target.value)}
               placeholder="Pilih toko"
-              options={tokoList.filter((t) => t.aktif !== false).map((t) => ({ value: t.nama, label: t.nama }))}
+              disabled={!tipePenjualan}
+              options={tokoList
+                .filter((t) => t.aktif !== false && t.tipe_harga === tipePenjualan.toLowerCase())
+                .map((t) => ({ value: t.nama, label: t.nama }))}
             />
             {isDuplicate && (
               <p className="mt-1 text-xs text-red-600">Sudah ada distribusi untuk toko ini pada tanggal yang sama.</p>
             )}
           </Field>
         ) : (
-          <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-            <TipeBadge tipe="Perorangan" />
-            <span className="text-sm text-amber-700">Penjualan langsung</span>
+          <div className="flex flex-col justify-end">
+            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+              <TipeBadge tipe="Perorangan" />
+              <span className="text-sm font-medium text-amber-700">Penjualan langsung ke perorangan</span>
+            </div>
           </div>
         )}
         <Field label="Sales">
