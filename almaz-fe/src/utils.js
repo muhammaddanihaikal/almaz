@@ -119,8 +119,8 @@ const buildSheet = (rows, columns, meta = [], options = {}) => {
         if (options.centered) {
           // Center everything
           ws[addr].s = { alignment: { horizontal: "center", vertical: "center", wrapText: true } };
-        } else if (options.centerData && R >= dataRowStart) {
-          // Center + middle only for data rows
+        } else if (options.centerData && R >= headerRowIdx) {
+          // Center header row + data rows
           ws[addr].s = { alignment: { horizontal: "center", vertical: "center", wrapText: true } };
         }
         // Meta rows: left-aligned by default (no explicit style needed)

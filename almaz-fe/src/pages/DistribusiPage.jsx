@@ -85,7 +85,7 @@ export default function DistribusiPage({
     const meta = [
       ["Laporan Penjualan"],
       ["Periode",           periodeLabel],
-      ["Total Qty Terjual", totalQty],
+      ["Total Qty Terjual", String(totalQty)],
       ["Total Transaksi",   `${rows.length} transaksi`],
       ["Total Pendapatan",  fmtIDR(totalRevenue)],
     ];
