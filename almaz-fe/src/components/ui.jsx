@@ -185,8 +185,8 @@ export function DateFilter({ value, onChange }) {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="relative">
+    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+      <div className="relative w-full sm:w-auto">
         <CalendarDays
           className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
           strokeWidth={2}
@@ -194,7 +194,7 @@ export function DateFilter({ value, onChange }) {
         <select
           value={value?.preset || 'semua'}
           onChange={handlePresetChange}
-          className="h-[38px] cursor-pointer appearance-none rounded-lg border border-neutral-200 bg-white pl-9 pr-8 text-sm font-medium text-neutral-800 outline-none transition hover:border-neutral-300 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
+          className="h-[38px] w-full cursor-pointer appearance-none rounded-lg border border-neutral-200 bg-white pl-9 pr-8 text-sm font-medium text-neutral-800 outline-none transition hover:border-neutral-300 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 sm:w-auto"
         >
           <option value="semua">Semua Waktu</option>
           <option value="hari_ini">Hari Ini</option>
@@ -211,19 +211,19 @@ export function DateFilter({ value, onChange }) {
         </svg>
       </div>
 
-      <div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-2 py-1">
+      <div className="flex w-full items-center gap-2 rounded-lg border border-neutral-200 bg-white px-2 py-1 sm:w-auto">
         <input
           type="date"
           value={value?.start || ''}
           onChange={(e) => handleCustomChange('start', e.target.value)}
-          className="h-[28px] border-none bg-transparent text-sm font-medium text-neutral-800 outline-none"
+          className="h-[28px] w-full border-none bg-transparent text-sm font-medium text-neutral-800 outline-none sm:w-auto"
         />
         <span className="text-sm font-medium text-neutral-400">-</span>
         <input
           type="date"
           value={value?.end || ''}
           onChange={(e) => handleCustomChange('end', e.target.value)}
-          className="h-[28px] border-none bg-transparent text-sm font-medium text-neutral-800 outline-none"
+          className="h-[28px] w-full border-none bg-transparent text-sm font-medium text-neutral-800 outline-none sm:w-auto"
         />
       </div>
     </div>

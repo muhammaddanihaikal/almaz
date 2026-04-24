@@ -15,7 +15,7 @@ export default function Modal({ title, children, onClose, width = "max-w-md" }) 
       onClick={onClose}
     >
       <div
-        className={`w-full ${width} rounded-xl border border-neutral-200 bg-white p-6 shadow-xl`}
+        className={`w-full ${width} max-h-[90vh] overflow-y-auto rounded-xl border border-neutral-200 bg-white p-6 shadow-xl`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-start justify-between">

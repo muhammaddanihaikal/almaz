@@ -169,12 +169,12 @@ export default function App() {
     setAbsensiList((prev) => prev.filter((a) => a.tanggal !== tanggal));
 
   return (
-    <div className="flex min-h-screen bg-neutral-50 text-neutral-900">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-neutral-50 text-neutral-900">
       <Sidebar tab={tab} onTabChange={setTab} />
 
-      <div className="flex flex-1 flex-col">
-        <main className="flex-1">
-          <div className="mx-auto max-w-6xl px-6 py-8">
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto">
+          <div className="mx-auto max-w-6xl px-4 py-6 lg:px-6 lg:py-8">
             {tab === "dashboard" && (
               <Dashboard
                 distribusi={distribusi}

@@ -163,23 +163,27 @@ export default function DistribusiPage({
           dateRange?.start ? ` — ${fmtTanggal(dateRange.start)} s/d ${fmtTanggal(dateRange.end)}` : " — semua waktu"
         }${tokoFilter ? ` (${tokoFilter})` : ""}.`}
         action={
-          <div className="flex flex-wrap items-center gap-2">
-            <DownloadButton onClick={handleDownload} disabled={!rows.length} />
-            <PrimaryButton onClick={() => { setEditing(null); setMode("add"); }} icon={Plus}>
-              Input Distribusi
-            </PrimaryButton>
+          <div className="mt-4 flex w-full flex-col gap-2 sm:mt-0 sm:w-auto sm:flex-row sm:items-center">
+            <div className="flex w-full sm:w-auto [&>button]:w-full">
+              <DownloadButton onClick={handleDownload} disabled={!rows.length} />
+            </div>
+            <div className="flex w-full sm:w-auto [&>button]:w-full">
+              <PrimaryButton onClick={() => { setEditing(null); setMode("add"); }} icon={Plus}>
+                Input Distribusi
+              </PrimaryButton>
+            </div>
           </div>
         }
       />
 
-      <div className="flex flex-wrap items-center gap-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-        <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-neutral-600">Waktu:</label>
+      <div className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] lg:flex-row lg:flex-wrap lg:items-center lg:gap-6">
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+          <label className="text-sm font-medium text-neutral-600 sm:w-14">Waktu:</label>
           <DateFilter value={dateRange} onChange={setDateRange} />
         </div>
-        <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-neutral-600">Toko:</label>
-          <div className="w-56">
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+          <label className="text-sm font-medium text-neutral-600 sm:w-10">Toko:</label>
+          <div className="w-full sm:w-56">
             <SearchableSelect
               value={tokoFilter}
               onChange={(e) => setTokoFilter(e.target.value)}
@@ -191,9 +195,9 @@ export default function DistribusiPage({
             />
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-neutral-600">Sales:</label>
-          <div className="w-48">
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+          <label className="text-sm font-medium text-neutral-600 sm:w-10">Sales:</label>
+          <div className="w-full sm:w-48">
             <SearchableSelect
               value={salesFilter}
               onChange={(e) => setSalesFilter(e.target.value)}
@@ -448,7 +452,7 @@ function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onS
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="Tanggal">
           <input
             type="date"
@@ -474,7 +478,7 @@ function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onS
         </Field>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {tipePenjualan !== "Perorangan" ? (
           <Field label="Toko">
             <SearchableSelect

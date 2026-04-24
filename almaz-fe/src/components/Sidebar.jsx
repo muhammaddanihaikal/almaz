@@ -60,12 +60,12 @@ export default function Sidebar({ tab, onTabChange }) {
           >
             <div className="flex items-center gap-3">
               <item.icon className="h-4 w-4 shrink-0 text-neutral-500" strokeWidth={2} />
-              <span className="hidden lg:inline">{item.label}</span>
+              <span>{item.label}</span>
             </div>
             {isOpen ? (
-              <ChevronDown className="h-4 w-4 shrink-0 text-neutral-400 hidden lg:block" />
+              <ChevronDown className="h-4 w-4 shrink-0 text-neutral-400" />
             ) : (
-              <ChevronRight className="h-4 w-4 shrink-0 text-neutral-400 hidden lg:block" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-neutral-400" />
             )}
           </button>
           
@@ -102,7 +102,7 @@ export default function Sidebar({ tab, onTabChange }) {
         }
       >
         <Icon className={`h-4 w-4 shrink-0 ${active && depth > 0 ? 'text-white' : depth > 0 ? 'text-neutral-400' : ''}`} strokeWidth={2} />
-        <span className={depth > 0 ? "inline" : "hidden lg:inline"}>{label}</span>
+        <span>{label}</span>
       </a>
     );
   };

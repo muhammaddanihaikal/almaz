@@ -111,23 +111,27 @@ export default function ReturPage({
           dateRange?.start ? ` — ${fmtTanggal(dateRange.start)} s/d ${fmtTanggal(dateRange.end)}` : " — semua waktu"
         }${tokoFilter ? ` (${tokoFilter})` : ""}.`}
         action={
-          <div className="flex flex-wrap items-center gap-2">
-            <DownloadButton onClick={handleDownload} disabled={!rows.length} />
-            <PrimaryButton onClick={() => { setEditing(null); setMode("add"); }} icon={Plus}>
-              Input Retur
-            </PrimaryButton>
+          <div className="mt-4 flex w-full flex-col gap-2 sm:mt-0 sm:w-auto sm:flex-row sm:items-center">
+            <div className="flex w-full sm:w-auto [&>button]:w-full">
+              <DownloadButton onClick={handleDownload} disabled={!rows.length} />
+            </div>
+            <div className="flex w-full sm:w-auto [&>button]:w-full">
+              <PrimaryButton onClick={() => { setEditing(null); setMode("add"); }} icon={Plus}>
+                Input Retur
+              </PrimaryButton>
+            </div>
           </div>
         }
       />
 
-      <div className="flex flex-wrap items-center gap-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-        <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-neutral-600">Waktu:</label>
+      <div className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] lg:flex-row lg:flex-wrap lg:items-center lg:gap-6">
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+          <label className="text-sm font-medium text-neutral-600 sm:w-14">Waktu:</label>
           <DateFilter value={dateRange} onChange={setDateRange} />
         </div>
-        <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-neutral-600">Toko:</label>
-          <div className="w-56">
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+          <label className="text-sm font-medium text-neutral-600 sm:w-10">Toko:</label>
+          <div className="w-full sm:w-56">
             <SearchableSelect
               value={tokoFilter}
               onChange={(e) => setTokoFilter(e.target.value)}
@@ -139,9 +143,9 @@ export default function ReturPage({
             />
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-neutral-600">Sales:</label>
-          <div className="w-48">
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+          <label className="text-sm font-medium text-neutral-600 sm:w-10">Sales:</label>
+          <div className="w-full sm:w-48">
             <SearchableSelect
               value={salesFilter}
               onChange={(e) => setSalesFilter(e.target.value)}
@@ -323,7 +327,7 @@ const RETUR_TIPE_MAP = { toko: "Toko", grosir: "Grosir", perorangan: "Perorangan
 function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit, onCancel }) {
   const today = new Date().toISOString().slice(0, 10);
   const [tanggal, setTanggal]           = useState(initial?.tanggal || today);
-  const [isPerorangan, setIsPerorangan] = useState(initial?.tipe_penjualan === "Perorangan");
+  const [tipePenjualan, setTipePenjualan] = useState(initial?.tipe_penjualan || "");
   const [toko, setToko]                 = useState(initial?.tipe_penjualan === "Perorangan" ? "" : (initial?.toko || ""));
   const [sales, setSales]               = useState(initial?.sales || "");
   const [alasan, setAlasan]             = useState(initial?.alasan || "");
@@ -338,11 +342,8 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
   const updateItem = (idx, field, val) =>
     setItems(items.map((item, i) => (i === idx ? { ...item, [field]: val } : item)));
 
-  const tokoObj      = tokoList.find((x) => x.nama === toko);
-  const computedTipe = isPerorangan ? "Perorangan" : (tokoObj ? RETUR_TIPE_MAP[tokoObj.tipe_harga] || "" : "");
-
   const isDuplicate =
-    !isPerorangan && tanggal && toko &&
+    tipePenjualan !== "Perorangan" && tanggal && toko &&
     (existing || []).some((r) => r.tanggal === tanggal && r.toko === toko && r.id !== initial?.id);
 
   const validItems = items.filter((it) => it.rokok && Number(it.qty) > 0);
@@ -350,8 +351,8 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
   const valid =
     !isDuplicate &&
     tanggal &&
-    (isPerorangan || !!toko) &&
-    !!computedTipe &&
+    (tipePenjualan === "Perorangan" || !!toko) &&
+    !!tipePenjualan &&
     !!sales &&
     alasan.trim().length > 0 &&
     validItems.length > 0;
@@ -361,8 +362,8 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
     if (!valid) return;
     onSubmit({
       tanggal,
-      toko: isPerorangan ? "" : toko,
-      tipe_penjualan: computedTipe,
+      toko: tipePenjualan === "Perorangan" ? "" : toko,
+      tipe_penjualan: tipePenjualan,
       sales,
       alasan: alasan.trim(),
       items: validItems.map((it) => ({ rokok: it.rokok, qty: Number(it.qty) })),
@@ -371,7 +372,7 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="Tanggal">
           <input
             type="date"
@@ -381,36 +382,44 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
             required
           />
         </Field>
-        <div className="flex items-end pb-1">
-          <label className="flex cursor-pointer select-none items-center gap-2.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50">
-            <input
-              type="checkbox"
-              checked={isPerorangan}
-              onChange={(e) => { setIsPerorangan(e.target.checked); if (e.target.checked) setToko(""); }}
-              className="h-4 w-4 rounded border-neutral-300 accent-neutral-900"
-            />
-            Perorangan
-          </label>
-        </div>
+        <Field label="Tipe Penjualan">
+          <SelectInput
+            value={tipePenjualan}
+            onChange={(e) => {
+              setTipePenjualan(e.target.value);
+              setToko("");
+            }}
+          >
+            <option value="">Pilih Tipe Penjualan</option>
+            <option value="Toko">Toko</option>
+            <option value="Grosir">Grosir</option>
+            <option value="Perorangan">Perorangan</option>
+          </SelectInput>
+        </Field>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        {!isPerorangan ? (
-          <Field label={<span className="flex items-center gap-2">Toko {tokoObj && <TipeBadge tipe={RETUR_TIPE_MAP[tokoObj.tipe_harga]} />}</span>}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {tipePenjualan !== "Perorangan" ? (
+          <Field label="Toko">
             <SearchableSelect
               value={toko}
               onChange={(e) => setToko(e.target.value)}
               placeholder="Pilih toko"
-              options={tokoList.filter((t) => t.aktif !== false).map((t) => ({ value: t.nama, label: t.nama }))}
+              disabled={!tipePenjualan}
+              options={tokoList
+                .filter((t) => t.aktif !== false && t.tipe_harga === tipePenjualan.toLowerCase())
+                .map((t) => ({ value: t.nama, label: t.nama }))}
             />
             {isDuplicate && (
               <p className="mt-1 text-xs text-red-600">Sudah ada retur untuk toko ini pada tanggal yang sama.</p>
             )}
           </Field>
         ) : (
-          <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-            <TipeBadge tipe="Perorangan" />
-            <span className="text-sm text-amber-700">Penjualan langsung</span>
+          <div className="flex flex-col justify-end">
+            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+              <TipeBadge tipe="Perorangan" />
+              <span className="text-sm font-medium text-amber-700">Retur langsung dari perorangan</span>
+            </div>
           </div>
         )}
         <Field label="Sales">
