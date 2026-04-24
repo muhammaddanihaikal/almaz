@@ -86,7 +86,7 @@ export default function RokokPage({ rokokList, distribusi, retur, onAdd, onUpdat
               render: (r) => (
                 <div>
                   <div>{fmtIDR(r.harga_grosir)}</div>
-                  <div className="text-xs text-neutral-500 font-medium">{fmtIDR(r.harga_grosir - r.harga_beli)}</div>
+                  <div className="text-xs text-emerald-600 font-medium">+{fmtIDR(r.harga_grosir - r.harga_beli)}</div>
                 </div>
               ),
             },
@@ -97,7 +97,7 @@ export default function RokokPage({ rokokList, distribusi, retur, onAdd, onUpdat
               render: (r) => (
                 <div>
                   <div>{fmtIDR(r.harga_toko)}</div>
-                  <div className="text-xs text-neutral-500 font-medium">{fmtIDR(r.harga_toko - r.harga_beli)}</div>
+                  <div className="text-xs text-emerald-600 font-medium">+{fmtIDR(r.harga_toko - r.harga_beli)}</div>
                 </div>
               ),
             },
@@ -108,7 +108,7 @@ export default function RokokPage({ rokokList, distribusi, retur, onAdd, onUpdat
               render: (r) => (
                 <div>
                   <div>{fmtIDR(r.harga_perorangan)}</div>
-                  <div className="text-xs text-neutral-500 font-medium">{fmtIDR(r.harga_perorangan - r.harga_beli)}</div>
+                  <div className="text-xs text-emerald-600 font-medium">+{fmtIDR(r.harga_perorangan - r.harga_beli)}</div>
                 </div>
               ),
             },
