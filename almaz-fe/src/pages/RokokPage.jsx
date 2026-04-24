@@ -9,12 +9,13 @@ import {
   RowActions,
   Field,
   FormActions,
+  Toggle,
   inputCls,
 } from "../components/ui";
 import DataTable from "../components/DataTable";
 import Modal from "../components/Modal";
 
-export default function RokokPage({ rokokList, onAdd, onUpdate, onDelete }) {
+export default function RokokPage({ rokokList, distribusi, retur, onAdd, onUpdate, onDelete, onToggleAktif }) {
   const [mode, setMode] = useState(null);
   const [editing, setEditing] = useState(null);
 
@@ -22,6 +23,10 @@ export default function RokokPage({ rokokList, onAdd, onUpdate, onDelete }) {
     () => [...rokokList].sort((a, b) => a.nama.localeCompare(b.nama, "id")),
     [rokokList]
   );
+
+  const isUsed = (nama) =>
+    (distribusi || []).some((d) => d.items.some((it) => it.rokok === nama)) ||
+    (retur || []).some((r) => r.items.some((it) => it.rokok === nama));
 
   const close = () => {
     setMode(null);
@@ -108,6 +113,17 @@ export default function RokokPage({ rokokList, onAdd, onUpdate, onDelete }) {
               ),
             },
             {
+              key: "aktif",
+              label: "Aktif",
+              align: "center",
+              render: (r) => (
+                <Toggle
+                  checked={r.aktif ?? true}
+                  onChange={() => onToggleAktif(r.id)}
+                />
+              ),
+            },
+            {
               key: "actions",
               label: "",
               align: "right",
@@ -118,6 +134,8 @@ export default function RokokPage({ rokokList, onAdd, onUpdate, onDelete }) {
                     setMode("edit");
                   }}
                   onDelete={() => handleDelete(r)}
+                  deleteDisabled={isUsed(r.nama)}
+                  deleteTitle="Rokok sudah digunakan di data distribusi/retur"
                 />
               ),
             },

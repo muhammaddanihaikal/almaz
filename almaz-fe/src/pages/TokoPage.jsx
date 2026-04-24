@@ -8,12 +8,14 @@ import {
   RowActions,
   Field,
   FormActions,
+  SelectInput,
+  Toggle,
   inputCls,
 } from "../components/ui";
 import DataTable from "../components/DataTable";
 import Modal from "../components/Modal";
 
-export default function TokoPage({ tokoList, onAdd, onUpdate, onDelete }) {
+export default function TokoPage({ tokoList, distribusi, retur, onAdd, onUpdate, onDelete, onToggleAktif }) {
   const [mode, setMode] = useState(null);
   const [editing, setEditing] = useState(null);
 
@@ -21,6 +23,10 @@ export default function TokoPage({ tokoList, onAdd, onUpdate, onDelete }) {
     () => [...tokoList].sort((a, b) => a.nama.localeCompare(b.nama, "id")),
     [tokoList]
   );
+
+  const isUsed = (nama) =>
+    (distribusi || []).some((d) => d.toko === nama) ||
+    (retur || []).some((r) => r.toko === nama);
 
   const close = () => {
     setMode(null);
@@ -64,15 +70,22 @@ export default function TokoPage({ tokoList, onAdd, onUpdate, onDelete }) {
             {
               key: "tipe_harga",
               label: "Tipe Harga",
-              render: (r) => (
-                <span className="capitalize">{r.tipe_harga}</span>
-              )
+              render: (r) => <span className="capitalize">{r.tipe_harga}</span>,
             },
             {
               key: "alamat",
               label: "Alamat",
+              render: (r) => <span className="text-neutral-500">{r.alamat || "—"}</span>,
+            },
+            {
+              key: "aktif",
+              label: "Aktif",
+              align: "center",
               render: (r) => (
-                <span className="text-neutral-500">{r.alamat || "—"}</span>
+                <Toggle
+                  checked={r.aktif ?? true}
+                  onChange={() => onToggleAktif(r.id)}
+                />
               ),
             },
             {
@@ -86,6 +99,8 @@ export default function TokoPage({ tokoList, onAdd, onUpdate, onDelete }) {
                     setMode("edit");
                   }}
                   onDelete={() => handleDelete(r)}
+                  deleteDisabled={isUsed(r.nama)}
+                  deleteTitle="Toko sudah digunakan di data distribusi/retur"
                 />
               ),
             },

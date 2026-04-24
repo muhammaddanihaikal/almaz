@@ -8,12 +8,13 @@ import {
   RowActions,
   Field,
   FormActions,
+  Toggle,
   inputCls,
 } from "../components/ui";
 import DataTable from "../components/DataTable";
 import Modal from "../components/Modal";
 
-export default function SalesPage({ salesList, onAdd, onUpdate, onDelete }) {
+export default function SalesPage({ salesList, distribusi, retur, onAdd, onUpdate, onDelete, onToggleAktif }) {
   const [mode, setMode] = useState(null);
   const [editing, setEditing] = useState(null);
 
@@ -21,6 +22,10 @@ export default function SalesPage({ salesList, onAdd, onUpdate, onDelete }) {
     () => [...salesList].sort((a, b) => a.nama.localeCompare(b.nama, "id")),
     [salesList]
   );
+
+  const isUsed = (nama) =>
+    (distribusi || []).some((d) => d.sales === nama) ||
+    (retur || []).some((r) => r.sales === nama);
 
   const close = () => { setMode(null); setEditing(null); };
 
@@ -48,6 +53,17 @@ export default function SalesPage({ salesList, onAdd, onUpdate, onDelete }) {
             { key: "no",   label: "No",        render: (_, idx) => idx + 1 },
             { key: "nama", label: "Nama Sales" },
             {
+              key: "aktif",
+              label: "Aktif",
+              align: "center",
+              render: (r) => (
+                <Toggle
+                  checked={r.aktif ?? true}
+                  onChange={() => onToggleAktif(r.id)}
+                />
+              ),
+            },
+            {
               key: "actions",
               label: "",
               align: "right",
@@ -55,6 +71,8 @@ export default function SalesPage({ salesList, onAdd, onUpdate, onDelete }) {
                 <RowActions
                   onEdit={() => { setEditing(r); setMode("edit"); }}
                   onDelete={() => handleDelete(r)}
+                  deleteDisabled={isUsed(r.nama)}
+                  deleteTitle="Sales sudah digunakan di data distribusi/retur"
                 />
               ),
             },

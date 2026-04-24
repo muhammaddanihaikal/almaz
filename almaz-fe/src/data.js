@@ -1,20 +1,20 @@
 export const ROKOK_AWAL = [
-  { id: 1, nama: "Marlboro Red",       harga_beli: 20000, harga_grosir: 21000, harga_toko: 21500, harga_perorangan: 22500, stok: 100 },
-  { id: 2, nama: "Sampoerna Hijau",    harga_beli: 18000, harga_grosir: 19000, harga_toko: 19500, harga_perorangan: 20000, stok: 150 },
-  { id: 3, nama: "Dji Sam Soe",        harga_beli: 15000, harga_grosir: 15500, harga_toko: 16000, harga_perorangan: 17000, stok: 200 },
-  { id: 4, nama: "Gudang Garam Merah", harga_beli: 16000, harga_grosir: 17000, harga_toko: 17500, harga_perorangan: 18000, stok: 80  },
+  { id: 1, nama: "Marlboro Red",       harga_beli: 20000, harga_grosir: 21000, harga_toko: 21500, harga_perorangan: 22500, stok: 100, aktif: true },
+  { id: 2, nama: "Sampoerna Hijau",    harga_beli: 18000, harga_grosir: 19000, harga_toko: 19500, harga_perorangan: 20000, stok: 150, aktif: true },
+  { id: 3, nama: "Dji Sam Soe",        harga_beli: 15000, harga_grosir: 15500, harga_toko: 16000, harga_perorangan: 17000, stok: 200, aktif: true },
+  { id: 4, nama: "Gudang Garam Merah", harga_beli: 16000, harga_grosir: 17000, harga_toko: 17500, harga_perorangan: 18000, stok: 80,  aktif: true },
 ];
 
 export const TOKO_AWAL = [
-  { id: 1, nama: "Warung Mak Siti",    tipe_harga: "toko", alamat: "Jl. Mawar No. 12, Bandung" },
-  { id: 2, nama: "Minimarket Sentosa", tipe_harga: "grosir", alamat: "Jl. Sudirman No. 45, Bandung" },
-  { id: 3, nama: "Toko Budi Jaya",     tipe_harga: "toko", alamat: "Jl. Merdeka No. 7, Bandung" },
+  { id: 1, nama: "Warung Mak Siti",    tipe_harga: "toko",   alamat: "Jl. Mawar No. 12, Bandung",    aktif: true },
+  { id: 2, nama: "Minimarket Sentosa", tipe_harga: "grosir", alamat: "Jl. Sudirman No. 45, Bandung", aktif: true },
+  { id: 3, nama: "Toko Budi Jaya",     tipe_harga: "toko",   alamat: "Jl. Merdeka No. 7, Bandung",   aktif: true },
 ];
 
 export const SALES_AWAL = [
-  { id: 1, nama: "Budi Santoso" },
-  { id: 2, nama: "Siti Rahayu" },
-  { id: 3, nama: "Ahmad Fauzi" },
+  { id: 1, nama: "Budi Santoso", aktif: true },
+  { id: 2, nama: "Siti Rahayu",  aktif: true },
+  { id: 3, nama: "Ahmad Fauzi",  aktif: true },
 ];
 
 export const DISTRIBUSI_AWAL = [

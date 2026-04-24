@@ -53,6 +53,11 @@ export default function App() {
   const deleteRokok = (id) =>
     setRokokList((prev) => prev.filter((r) => r.id !== id));
 
+  const toggleAktifRokok = (id) =>
+    setRokokList((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, aktif: !(r.aktif ?? true) } : r))
+    );
+
   // --- CRUD Toko (cascade nama) ---
   const addToko = (data) =>
     setTokoList((prev) => [...prev, { ...data, id: newId() }]);
@@ -71,6 +76,11 @@ export default function App() {
   const deleteToko = (id) =>
     setTokoList((prev) => prev.filter((t) => t.id !== id));
 
+  const toggleAktifToko = (id) =>
+    setTokoList((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, aktif: !(t.aktif ?? true) } : t))
+    );
+
   // --- CRUD Sales (cascade nama ke distribusi & retur) ---
   const addSales = (data) =>
     setSalesList((prev) => [...prev, { ...data, id: newId() }]);
@@ -88,6 +98,11 @@ export default function App() {
 
   const deleteSales = (id) =>
     setSalesList((prev) => prev.filter((s) => s.id !== id));
+
+  const toggleAktifSales = (id) =>
+    setSalesList((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, aktif: !(s.aktif ?? true) } : s))
+    );
 
   // --- CRUD Distribusi ---
   const addDistribusi = (data) => {
@@ -177,25 +192,34 @@ export default function App() {
             {tab === "toko" && (
               <TokoPage
                 tokoList={tokoList}
+                distribusi={distribusi}
+                retur={retur}
                 onAdd={addToko}
                 onUpdate={updateToko}
                 onDelete={deleteToko}
+                onToggleAktif={toggleAktifToko}
               />
             )}
             {tab === "rokok" && (
               <RokokPage
                 rokokList={rokokList}
+                distribusi={distribusi}
+                retur={retur}
                 onAdd={addRokok}
                 onUpdate={updateRokok}
                 onDelete={deleteRokok}
+                onToggleAktif={toggleAktifRokok}
               />
             )}
             {tab === "sales" && (
               <SalesPage
                 salesList={salesList}
+                distribusi={distribusi}
+                retur={retur}
                 onAdd={addSales}
                 onUpdate={updateSales}
                 onDelete={deleteSales}
+                onToggleAktif={toggleAktifSales}
               />
             )}
             {tab === "absensi" && (

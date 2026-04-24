@@ -241,19 +241,21 @@ export function DownloadButton({ onClick, disabled }) {
   );
 }
 
-export function IconButton({ onClick, icon: Icon, label, variant }) {
+export function IconButton({ onClick, icon: Icon, label, variant, disabled }) {
   const base =
     "inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent transition";
-  const look =
-    variant === "danger"
-      ? "text-neutral-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-      : "text-neutral-500 hover:border-neutral-200 hover:bg-neutral-100 hover:text-neutral-900";
+  const look = disabled
+    ? "cursor-not-allowed text-neutral-300"
+    : variant === "danger"
+    ? "text-neutral-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+    : "text-neutral-500 hover:border-neutral-200 hover:bg-neutral-100 hover:text-neutral-900";
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       title={label}
       aria-label={label}
+      disabled={disabled}
       className={base + " " + look}
     >
       <Icon className="h-4 w-4" strokeWidth={2} />
@@ -261,13 +263,41 @@ export function IconButton({ onClick, icon: Icon, label, variant }) {
   );
 }
 
-export function RowActions({ onDetail, onEdit, onDelete }) {
+export function RowActions({ onDetail, onEdit, onDelete, deleteDisabled, deleteTitle }) {
   return (
     <div className="flex justify-end gap-1">
       {onDetail && <IconButton onClick={onDetail} icon={Eye}    label="Detail" />}
       {onEdit   && <IconButton onClick={onEdit}   icon={Pencil} label="Edit" />}
-      {onDelete && <IconButton onClick={onDelete} icon={Trash2} label="Hapus" variant="danger" />}
+      {onDelete && (
+        <IconButton
+          onClick={onDelete}
+          icon={Trash2}
+          label={deleteDisabled ? (deleteTitle || "Tidak bisa dihapus") : "Hapus"}
+          variant="danger"
+          disabled={deleteDisabled}
+        />
+      )}
     </div>
+  );
+}
+
+export function Toggle({ checked, onChange }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${
+        checked ? "bg-neutral-900" : "bg-neutral-300"
+      }`}
+    >
+      <span
+        className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${
+          checked ? "translate-x-[18px]" : "translate-x-0.5"
+        }`}
+      />
+    </button>
   );
 }
 

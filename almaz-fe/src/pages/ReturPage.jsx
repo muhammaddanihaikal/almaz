@@ -56,20 +56,36 @@ export default function ReturPage({
       r.items.map((it) => ({
         tanggal: r.tanggal,
         toko: r.toko,
+        tipe_penjualan: r.tipe_penjualan || "",
         sales: r.sales || "",
         rokok: it.rokok,
         qty: it.qty,
         alasan: r.alasan || "",
       }))
     );
-    downloadExcel(flat, `retur${tLabel}${sLabel}-${label}`, [
-      { label: "Tanggal", value: (r) => r.tanggal },
-      { label: "Toko",    value: (r) => r.toko },
-      { label: "Sales",   value: (r) => r.sales },
-      { label: "Rokok",   value: (r) => r.rokok },
-      { label: "Qty",     value: (r) => r.qty },
-      { label: "Alasan",  value: (r) => r.alasan },
-    ]);
+    const periodeLabel = dateRange?.start
+      ? `${fmtTanggal(dateRange.start)} s/d ${fmtTanggal(dateRange.end)}`
+      : "Semua Waktu";
+    downloadExcel(
+      flat,
+      `retur${tLabel}${sLabel}-${label}`,
+      [
+        { label: "Tanggal",        value: (r) => r.tanggal },
+        { label: "Toko",           value: (r) => r.toko },
+        { label: "Tipe Penjualan", value: (r) => r.tipe_penjualan },
+        { label: "Sales",          value: (r) => r.sales },
+        { label: "Rokok",          value: (r) => r.rokok },
+        { label: "Qty",            value: (r) => r.qty },
+        { label: "Alasan",         value: (r) => r.alasan },
+      ],
+      [
+        ["Laporan Retur"],
+        ["Periode", periodeLabel],
+        ["Filter Toko", tokoFilter || "Semua Toko"],
+        ["Filter Sales", salesFilter || "Semua Sales"],
+        ["Total Transaksi", `${rows.length} transaksi`],
+      ]
+    );
   };
 
   const close = () => { setMode(null); setEditing(null); };
@@ -140,6 +156,7 @@ export default function ReturPage({
             { key: "no",      label: "No",      render: (_, idx) => idx + 1 },
             { key: "tanggal", label: "Tanggal", render: (r) => fmtTanggal(r.tanggal) },
             { key: "toko",    label: "Toko" },
+            { key: "tipe",    label: "Tipe",    render: (r) => <TipeBadge tipe={r.tipe_penjualan} /> },
             { key: "sales",   label: "Sales",   render: (r) => r.sales || <span className="text-neutral-400">—</span> },
             {
               key: "items",
@@ -214,6 +231,25 @@ export default function ReturPage({
   );
 }
 
+const TIPE_PENJUALAN_OPTIONS = [
+  { value: "Toko",       label: "Toko" },
+  { value: "Grosir",     label: "Grosir" },
+  { value: "Perorangan", label: "Perorangan" },
+];
+const TIPE_COLOR = {
+  Toko:       "bg-blue-100 text-blue-700",
+  Grosir:     "bg-violet-100 text-violet-700",
+  Perorangan: "bg-amber-100 text-amber-700",
+};
+function TipeBadge({ tipe }) {
+  if (!tipe) return <span className="text-neutral-400">—</span>;
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${TIPE_COLOR[tipe] || "bg-neutral-100 text-neutral-600"}`}>
+      {tipe}
+    </span>
+  );
+}
+
 function ReturDetail({ record }) {
   const totalQty = record.items.reduce((s, it) => s + it.qty, 0);
 
@@ -228,6 +264,12 @@ function ReturDetail({ record }) {
           <p className="text-xs text-neutral-500">Toko</p>
           <p className="font-medium">{record.toko}</p>
         </div>
+        {record.tipe_penjualan && (
+          <div>
+            <p className="text-xs text-neutral-500">Tipe Penjualan</p>
+            <TipeBadge tipe={record.tipe_penjualan} />
+          </div>
+        )}
         {record.sales && (
           <div>
             <p className="text-xs text-neutral-500">Sales</p>
@@ -276,10 +318,11 @@ function ReturDetail({ record }) {
 
 function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit, onCancel }) {
   const today = new Date().toISOString().slice(0, 10);
-  const [tanggal, setTanggal] = useState(initial?.tanggal || today);
-  const [toko, setToko]       = useState(initial?.toko || "");
-  const [sales, setSales]     = useState(initial?.sales || "");
-  const [alasan, setAlasan]   = useState(initial?.alasan || "");
+  const [tanggal, setTanggal]     = useState(initial?.tanggal || today);
+  const [toko, setToko]           = useState(initial?.toko || "");
+  const [tipe_penjualan, setTipe] = useState(initial?.tipe_penjualan || "");
+  const [sales, setSales]         = useState(initial?.sales || "");
+  const [alasan, setAlasan]       = useState(initial?.alasan || "");
   const [items, setItems] = useState(
     initial
       ? initial.items.map((it) => ({ rokok: it.rokok, qty: it.qty }))
@@ -304,6 +347,7 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
     !isDuplicate &&
     tanggal &&
     toko &&
+    tipe_penjualan &&
     sales &&
     alasan.trim().length > 0 &&
     validItems.length > 0;
@@ -314,6 +358,7 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
     onSubmit({
       tanggal,
       toko,
+      tipe_penjualan,
       sales,
       alasan: alasan.trim(),
       items: validItems.map((it) => ({ rokok: it.rokok, qty: Number(it.qty) })),
@@ -332,32 +377,46 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
             required
           />
         </Field>
+        <Field label="Tipe Penjualan">
+          <SelectInput
+            value={tipe_penjualan}
+            onChange={(e) => setTipe(e.target.value)}
+            required
+          >
+            <option value="">Pilih tipe</option>
+            {TIPE_PENJUALAN_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </SelectInput>
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Toko">
+          <SearchableSelect
+            value={toko}
+            onChange={(e) => setToko(e.target.value)}
+            placeholder="Pilih toko"
+            options={tokoList.filter((t) => t.aktif !== false).map((t) => ({ value: t.nama, label: t.nama }))}
+          />
+          {isDuplicate && (
+            <p className="mt-1 text-xs text-red-600">
+              Sudah ada retur untuk toko ini pada tanggal yang sama.
+            </p>
+          )}
+        </Field>
         <Field label="Sales">
           <SearchableSelect
             value={sales}
             onChange={(e) => setSales(e.target.value)}
             placeholder="Pilih sales"
             options={[
-              { value: "", label: "— Tidak dipilih —" },
-              ...salesList.map((s) => ({ value: s.nama, label: s.nama })),
+              { value: "", label: "Pilih sales" },
+              ...salesList.filter((s) => s.aktif !== false).map((s) => ({ value: s.nama, label: s.nama })),
             ]}
           />
         </Field>
       </div>
-
-      <Field label="Toko">
-        <SearchableSelect
-          value={toko}
-          onChange={(e) => setToko(e.target.value)}
-          placeholder="Pilih toko"
-          options={tokoList.map((t) => ({ value: t.nama, label: t.nama }))}
-        />
-        {isDuplicate && (
-          <p className="mt-1 text-xs text-red-600">
-            Sudah ada retur untuk toko ini pada tanggal yang sama.
-          </p>
-        )}
-      </Field>
 
       <div className="space-y-3">
         <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
@@ -374,7 +433,7 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
                     required={idx === 0}
                   >
                     <option value="">Pilih rokok</option>
-                    {rokokList.map((r) => (
+                    {rokokList.filter((r) => r.aktif !== false).map((r) => (
                       <option key={r.id} value={r.nama}>
                         {r.nama} (stok: {r.stok ?? 0})
                       </option>

@@ -59,6 +59,7 @@ export default function DistribusiPage({
       d.items.map((it) => ({
         tanggal: d.tanggal,
         toko: d.toko,
+        tipe_penjualan: d.tipe_penjualan || "",
         sales: d.sales || "",
         pembayaran: it.pembayaran || "Cash",
         tanggal_bayar: d.tanggal_bayar || "",
@@ -66,24 +67,36 @@ export default function DistribusiPage({
         qty: it.qty,
         harga: it.harga,
         total: it.qty * it.harga,
-        profit:
-          it.qty *
-          ((it.harga || 0) -
-            (getRokok(rokokList, it.rokok)?.harga_beli || 0)),
+        profit: it.qty * ((it.harga || 0) - (getRokok(rokokList, it.rokok)?.harga_beli || 0)),
       }))
     );
-    downloadExcel(flat, `distribusi${tLabel}${sLabel}-${label}`, [
-      { label: "Tanggal",      value: (r) => r.tanggal },
-      { label: "Toko",         value: (r) => r.toko },
-      { label: "Sales",        value: (r) => r.sales },
-      { label: "Pembayaran",   value: (r) => r.pembayaran },
-      { label: "Tgl Bayar",    value: (r) => r.tanggal_bayar },
-      { label: "Rokok",        value: (r) => r.rokok },
-      { label: "Qty",          value: (r) => r.qty },
-      { label: "Harga Satuan", value: (r) => r.harga },
-      { label: "Total",        value: (r) => r.total },
-      { label: "Profit",       value: (r) => r.profit },
-    ]);
+    const periodeLabel = dateRange?.start
+      ? `${fmtTanggal(dateRange.start)} s/d ${fmtTanggal(dateRange.end)}`
+      : "Semua Waktu";
+    downloadExcel(
+      flat,
+      `distribusi${tLabel}${sLabel}-${label}`,
+      [
+        { label: "Tanggal",        value: (r) => r.tanggal },
+        { label: "Toko",           value: (r) => r.toko },
+        { label: "Tipe Penjualan", value: (r) => r.tipe_penjualan },
+        { label: "Sales",          value: (r) => r.sales },
+        { label: "Pembayaran",     value: (r) => r.pembayaran },
+        { label: "Tgl Bayar",      value: (r) => r.tanggal_bayar },
+        { label: "Rokok",          value: (r) => r.rokok },
+        { label: "Qty",            value: (r) => r.qty },
+        { label: "Harga Satuan",   value: (r) => r.harga },
+        { label: "Total",          value: (r) => r.total },
+        { label: "Profit",         value: (r) => r.profit },
+      ],
+      [
+        ["Laporan Distribusi"],
+        ["Periode", periodeLabel],
+        ["Filter Toko", tokoFilter || "Semua Toko"],
+        ["Filter Sales", salesFilter || "Semua Sales"],
+        ["Total Transaksi", `${rows.length} transaksi`],
+      ]
+    );
   };
 
   const close = () => { setMode(null); setEditing(null); };
@@ -154,6 +167,7 @@ export default function DistribusiPage({
             { key: "no",      label: "No",      render: (_, idx) => idx + 1 },
             { key: "tanggal", label: "Tanggal", render: (r) => fmtTanggal(r.tanggal) },
             { key: "toko",    label: "Toko" },
+            { key: "tipe",    label: "Tipe",    render: (r) => <TipeBadge tipe={r.tipe_penjualan} /> },
             { key: "sales",   label: "Sales",   render: (r) => r.sales || <span className="text-neutral-400">—</span> },
             {
               key: "items",
@@ -249,6 +263,12 @@ function DistribusiDetail({ record, rokokList }) {
           <p className="text-xs text-neutral-500">Toko</p>
           <p className="font-medium">{record.toko}</p>
         </div>
+        {record.tipe_penjualan && (
+          <div>
+            <p className="text-xs text-neutral-500">Tipe Penjualan</p>
+            <TipeBadge tipe={record.tipe_penjualan} />
+          </div>
+        )}
         {record.sales && (
           <div>
             <p className="text-xs text-neutral-500">Sales</p>
@@ -310,11 +330,31 @@ function DistribusiDetail({ record, rokokList }) {
   );
 }
 
+const TIPE_PENJUALAN_OPTIONS = [
+  { value: "Toko",       label: "Toko" },
+  { value: "Grosir",     label: "Grosir" },
+  { value: "Perorangan", label: "Perorangan" },
+];
+const TIPE_COLOR = {
+  Toko:       "bg-blue-100 text-blue-700",
+  Grosir:     "bg-violet-100 text-violet-700",
+  Perorangan: "bg-amber-100 text-amber-700",
+};
+function TipeBadge({ tipe }) {
+  if (!tipe) return <span className="text-neutral-400">—</span>;
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${TIPE_COLOR[tipe] || "bg-neutral-100 text-neutral-600"}`}>
+      {tipe}
+    </span>
+  );
+}
+
 function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onSubmit, onCancel }) {
   const today = new Date().toISOString().slice(0, 10);
-  const [tanggal, setTanggal] = useState(initial?.tanggal || today);
-  const [toko, setToko]       = useState(initial?.toko || "");
-  const [sales, setSales]     = useState(initial?.sales || "");
+  const [tanggal, setTanggal]           = useState(initial?.tanggal || today);
+  const [toko, setToko]                 = useState(initial?.toko || "");
+  const [tipe_penjualan, setTipe]       = useState(initial?.tipe_penjualan || "");
+  const [sales, setSales]               = useState(initial?.sales || "");
   const [tanggalBayar, setTanggalBayar] = useState(initial?.tanggal_bayar || "");
   const [items, setItems] = useState(
     initial
@@ -341,6 +381,7 @@ function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onS
     !isDuplicate &&
     tanggal &&
     toko &&
+    tipe_penjualan &&
     sales &&
     (!adaHutang || tanggalBayar) &&
     validItems.length > 0;
@@ -351,6 +392,7 @@ function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onS
     onSubmit({
       tanggal,
       toko,
+      tipe_penjualan,
       sales,
       tanggal_bayar: adaHutang ? tanggalBayar : null,
       items: validItems.map((it) => {
@@ -382,37 +424,67 @@ function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onS
             required
           />
         </Field>
+        <Field label="Tipe Penjualan">
+          <SelectInput
+            value={tipe_penjualan}
+            onChange={(e) => setTipe(e.target.value)}
+            required
+          >
+            <option value="">Pilih tipe</option>
+            {TIPE_PENJUALAN_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </SelectInput>
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Toko">
+          <SearchableSelect
+            value={toko}
+            onChange={(e) => setToko(e.target.value)}
+            placeholder="Pilih toko"
+            options={tokoList.filter((t) => t.aktif !== false).map((t) => ({ value: t.nama, label: t.nama }))}
+          />
+          {isDuplicate && (
+            <p className="mt-1 text-xs text-red-600">
+              Sudah ada distribusi untuk toko ini pada tanggal yang sama.
+            </p>
+          )}
+        </Field>
         <Field label="Sales">
           <SearchableSelect
             value={sales}
             onChange={(e) => setSales(e.target.value)}
             placeholder="Pilih sales"
             options={[
-              { value: "", label: "— Tidak dipilih —" },
-              ...salesList.map((s) => ({ value: s.nama, label: s.nama })),
+              { value: "", label: "Pilih sales" },
+              ...salesList.filter(s => s.aktif !== false).map((s) => ({ value: s.nama, label: s.nama })),
             ]}
           />
         </Field>
       </div>
 
-      <Field label="Toko">
-        <SearchableSelect
-          value={toko}
-          onChange={(e) => setToko(e.target.value)}
-          placeholder="Pilih toko"
-          options={tokoList.map((t) => ({ value: t.nama, label: t.nama }))}
-        />
-        {isDuplicate && (
-          <p className="mt-1 text-xs text-red-600">
-            Sudah ada distribusi untuk toko ini pada tanggal yang sama.
-          </p>
-        )}
-      </Field>
-
       <div className="space-y-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-          Daftar Rokok
-        </span>
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Daftar Rokok</span>
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => setItems(items.map((it) => ({ ...it, pembayaran: "Cash" })))}
+              className="rounded-md border border-neutral-200 bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-50"
+            >
+              Semua Cash
+            </button>
+            <button
+              type="button"
+              onClick={() => setItems(items.map((it) => ({ ...it, pembayaran: "Hutang" })))}
+              className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100"
+            >
+              Semua Hutang
+            </button>
+          </div>
+        </div>
         <div className="space-y-3">
           {items.map((item, idx) => {
             const t = tokoList.find(x => x.nama === toko);
@@ -434,7 +506,7 @@ function DistribusiForm({ initial, existing, rokokList, tokoList, salesList, onS
                       required={idx === 0}
                     >
                       <option value="">Pilih rokok</option>
-                      {rokokList.map((r) => (
+                      {rokokList.filter((r) => r.aktif !== false).map((r) => (
                         <option key={r.id} value={r.nama}>
                           {r.nama} (stok: {r.stok ?? 0})
                         </option>
