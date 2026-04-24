@@ -104,7 +104,17 @@ export default function Dashboard({ distribusi, retur, rokokList, tokoList }) {
       </div>
 
       {/* Trend profit — full width */}
-      <Card title="Trend Profit Harian" subtitle="Total profit per tanggal">
+      <Card
+        title="Trend Profit Harian"
+        subtitle="Total profit per tanggal"
+        action={
+          <span className="rounded bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-600">
+            {dateRange?.start
+              ? `${fmtTanggal(dateRange.start)} - ${fmtTanggal(dateRange.end)}`
+              : "Semua Waktu"}
+          </span>
+        }
+      >
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
@@ -113,10 +123,14 @@ export default function Dashboard({ distribusi, retur, rokokList, tokoList }) {
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis
-                dataKey="label"
+                dataKey="tanggal"
                 tick={{ fontSize: 12, fill: "#737373" }}
                 tickLine={false}
                 axisLine={{ stroke: "#e5e5e5" }}
+                tickFormatter={(v) => {
+                  const d = new Date(v);
+                  return d.getDate().toString().padStart(2, "0");
+                }}
               />
               <YAxis
                 tick={{ fontSize: 12, fill: "#737373" }}

@@ -305,17 +305,20 @@ export function Toggle({ checked, onChange }) {
   );
 }
 
-export function Card({ title, subtitle, children }) {
+export function Card({ title, subtitle, action, children }) {
   return (
     <section className="rounded-xl border border-neutral-200 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-      {(title || subtitle) && (
-        <header className="mb-4">
-          {title && (
-            <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
-          )}
-          {subtitle && (
-            <p className="mt-0.5 text-xs text-neutral-500">{subtitle}</p>
-          )}
+      {(title || subtitle || action) && (
+        <header className="mb-4 flex items-start justify-between gap-4">
+          <div>
+            {title && (
+              <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
+            )}
+            {subtitle && (
+              <p className="mt-0.5 text-xs text-neutral-500">{subtitle}</p>
+            )}
+          </div>
+          {action && <div>{action}</div>}
         </header>
       )}
       {children}
