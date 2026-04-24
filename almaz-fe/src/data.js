@@ -6,15 +6,15 @@ export const ROKOK_AWAL = [
 ];
 
 export const TOKO_AWAL = [
-  { id: 1, nama: "Warung Mak Siti",    tipe_harga: "toko",   alamat: "Jl. Mawar No. 12, Bandung",    aktif: true },
-  { id: 2, nama: "Minimarket Sentosa", tipe_harga: "grosir", alamat: "Jl. Sudirman No. 45, Bandung", aktif: true },
-  { id: 3, nama: "Toko Budi Jaya",     tipe_harga: "toko",   alamat: "Jl. Merdeka No. 7, Bandung",   aktif: true },
+  { id: 1, nama: "Warung Mak Siti",    tipe_harga: "toko",   no_hp: "",  alamat: "Jl. Mawar No. 12, Bandung",    aktif: true },
+  { id: 2, nama: "Minimarket Sentosa", tipe_harga: "grosir", no_hp: "",  alamat: "Jl. Sudirman No. 45, Bandung", aktif: true },
+  { id: 3, nama: "Toko Budi Jaya",     tipe_harga: "toko",   no_hp: "",  alamat: "Jl. Merdeka No. 7, Bandung",   aktif: true },
 ];
 
 export const SALES_AWAL = [
-  { id: 1, nama: "Budi Santoso", aktif: true },
-  { id: 2, nama: "Siti Rahayu",  aktif: true },
-  { id: 3, nama: "Ahmad Fauzi",  aktif: true },
+  { id: 1, nama: "Budi Santoso", no_hp: "", aktif: true },
+  { id: 2, nama: "Siti Rahayu",  no_hp: "", aktif: true },
+  { id: 3, nama: "Ahmad Fauzi",  no_hp: "", aktif: true },
 ];
 
 export const DISTRIBUSI_AWAL = [

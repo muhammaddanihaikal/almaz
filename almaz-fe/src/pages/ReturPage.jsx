@@ -394,6 +394,7 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
         </Field>
       </div>
 
+      <div className={`space-y-4${!tipePenjualan ? " pointer-events-none opacity-50 select-none" : ""}`}>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {tipePenjualan !== "Perorangan" ? (
           <Field label="Toko">
@@ -495,6 +496,7 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
         />
       </Field>
 
+      </div>
       <FormActions
         onCancel={onCancel}
         disabled={!valid}

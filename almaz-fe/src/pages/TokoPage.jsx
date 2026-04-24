@@ -67,6 +67,7 @@ export default function TokoPage({ tokoList, distribusi, retur, onAdd, onUpdate,
           columns={[
             { key: "no", label: "No", render: (_, idx) => idx + 1 },
             { key: "nama", label: "Nama Toko" },
+            { key: "no_hp", label: "No HP", render: (r) => r.no_hp || <span className="text-neutral-400">—</span> },
             {
               key: "tipe_harga",
               label: "Tipe",
@@ -113,6 +114,7 @@ export default function TokoPage({ tokoList, distribusi, retur, onAdd, onUpdate,
                 <div>
                   <p className="font-medium text-neutral-900">{r.nama}</p>
                   <p className="text-xs capitalize text-neutral-500">{r.tipe_harga}</p>
+                  {r.no_hp && <p className="text-xs text-neutral-500">{r.no_hp}</p>}
                   {r.alamat && <p className="mt-1 text-xs text-neutral-500">{r.alamat}</p>}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -153,13 +155,14 @@ export default function TokoPage({ tokoList, distribusi, retur, onAdd, onUpdate,
 function TokoForm({ initial, onSubmit, onCancel }) {
   const [nama, setNama] = useState(initial?.nama || "");
   const [tipeHarga, setTipeHarga] = useState(initial?.tipe_harga || "toko");
+  const [noHp, setNoHp] = useState(initial?.no_hp || "");
   const [alamat, setAlamat] = useState(initial?.alamat || "");
   const valid = nama.trim().length > 0;
 
   const submit = (e) => {
     e.preventDefault();
     if (!valid) return;
-    onSubmit({ nama: nama.trim(), tipe_harga: tipeHarga, alamat: alamat.trim() });
+    onSubmit({ nama: nama.trim(), tipe_harga: tipeHarga, no_hp: noHp.trim(), alamat: alamat.trim() });
   };
 
   return (
@@ -173,6 +176,15 @@ function TokoForm({ initial, onSubmit, onCancel }) {
           className={inputCls}
           autoFocus
           required
+        />
+      </Field>
+      <Field label="No HP">
+        <input
+          type="text"
+          value={noHp}
+          onChange={(e) => setNoHp(e.target.value)}
+          placeholder="Misal: 0812-3456-7890"
+          className={inputCls}
         />
       </Field>
       <Field label="Tipe">

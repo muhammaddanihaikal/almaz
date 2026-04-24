@@ -52,6 +52,7 @@ export default function SalesPage({ salesList, distribusi, retur, onAdd, onUpdat
           columns={[
             { key: "no",   label: "No",        render: (_, idx) => idx + 1 },
             { key: "nama", label: "Nama Sales" },
+            { key: "no_hp", label: "No HP", render: (r) => r.no_hp || <span className="text-neutral-400">—</span> },
             {
               key: "aktif",
               label: "Aktif",
@@ -81,7 +82,10 @@ export default function SalesPage({ salesList, distribusi, retur, onAdd, onUpdat
           empty="Belum ada sales."
           mobileRender={(r) => (
             <div className="flex items-center justify-between gap-2">
-              <p className="font-medium text-neutral-900">{r.nama}</p>
+              <div>
+                <p className="font-medium text-neutral-900">{r.nama}</p>
+                {r.no_hp && <p className="text-xs text-neutral-500">{r.no_hp}</p>}
+              </div>
               <div className="flex items-center gap-2 shrink-0">
                 <Toggle checked={r.aktif ?? true} onChange={() => onToggleAktif(r.id)} />
                 <RowActions
@@ -119,6 +123,7 @@ export default function SalesPage({ salesList, distribusi, retur, onAdd, onUpdat
 
 function SalesForm({ initial, salesList, onSubmit, onCancel }) {
   const [nama, setNama] = useState(initial?.nama || "");
+  const [noHp, setNoHp] = useState(initial?.no_hp || "");
 
   const isDuplicate = salesList.some(
     (s) => s.nama.toLowerCase() === nama.trim().toLowerCase() && s.id !== initial?.id
@@ -128,7 +133,7 @@ function SalesForm({ initial, salesList, onSubmit, onCancel }) {
   const submit = (e) => {
     e.preventDefault();
     if (!valid) return;
-    onSubmit({ nama: nama.trim() });
+    onSubmit({ nama: nama.trim(), no_hp: noHp.trim() });
   };
 
   return (
@@ -146,6 +151,15 @@ function SalesForm({ initial, salesList, onSubmit, onCancel }) {
         {isDuplicate && (
           <p className="mt-1 text-xs text-red-600">Nama sales sudah terdaftar.</p>
         )}
+      </Field>
+      <Field label="No HP">
+        <input
+          type="text"
+          value={noHp}
+          onChange={(e) => setNoHp(e.target.value)}
+          placeholder="Misal: 0812-3456-7890"
+          className={inputCls}
+        />
       </Field>
       <FormActions
         onCancel={onCancel}
