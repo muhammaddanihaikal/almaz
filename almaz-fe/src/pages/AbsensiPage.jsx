@@ -104,9 +104,9 @@ export default function AbsensiPage({ absensiList, salesList, onSave, onDelete }
         }
       />
 
-      <div className="flex flex-wrap items-center gap-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-        <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-neutral-600">Waktu:</label>
+      <div className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:flex-row sm:items-center sm:gap-6">
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+          <label className="text-sm font-medium text-neutral-600 sm:w-14">Waktu:</label>
           <DateFilter value={dateRange} onChange={setDateRange} />
         </div>
       </div>
@@ -155,6 +155,31 @@ export default function AbsensiPage({ absensiList, salesList, onSave, onDelete }
           ]}
           rows={rows}
           empty={dateRange?.start ? `Tidak ada absensi dari ${fmtTanggal(dateRange.start)} s/d ${fmtTanggal(dateRange.end)}.` : "Belum ada data absensi."}
+          mobileRender={(r) => {
+            const hadir = r.records.filter((a) => a.status === "hadir").length;
+            const izin  = r.records.filter((a) => a.status === "izin").length;
+            const alpha = r.records.filter((a) => a.status === "alpha").length;
+            return (
+              <div className="space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium text-neutral-900">{fmtTanggal(r.tanggal)}</p>
+                    <p className="text-xs text-neutral-500">{r.records.length} sales</p>
+                  </div>
+                  <RowActions
+                    onDetail={() => setDetail(r)}
+                    onEdit={() => { setEditingTanggal(r.tanggal); setMode("edit"); }}
+                    onDelete={() => handleDelete(r.tanggal)}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {hadir > 0 && <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">{hadir} Hadir</span>}
+                  {izin  > 0 && <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-700">{izin} Izin</span>}
+                  {alpha > 0 && <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700">{alpha} Alpha</span>}
+                </div>
+              </div>
+            );
+          }}
         />
       </Card>
 

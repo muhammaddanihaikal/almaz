@@ -142,6 +142,41 @@ export default function RokokPage({ rokokList, distribusi, retur, onAdd, onUpdat
           ]}
           rows={rows}
           empty="Belum ada rokok."
+          mobileRender={(r) => (
+            <div className="space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-medium text-neutral-900">{r.nama}</p>
+                  <p className="text-xs text-neutral-500">Stok: <span className="font-semibold text-neutral-700">{r.stok ?? 0}</span></p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Toggle checked={r.aktif ?? true} onChange={() => onToggleAktif(r.id)} />
+                  <RowActions
+                    onEdit={() => { setEditing(r); setMode("edit"); }}
+                    onDelete={() => handleDelete(r)}
+                    deleteDisabled={isUsed(r.nama)}
+                    deleteTitle="Rokok sudah digunakan di data distribusi/retur"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-1 pt-1 border-t border-neutral-200">
+                <div className="text-center">
+                  <p className="text-[10px] uppercase tracking-wide text-neutral-400">Beli</p>
+                  <p className="text-xs font-medium text-neutral-700">{fmtIDR(r.harga_beli)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] uppercase tracking-wide text-neutral-400">Grosir</p>
+                  <p className="text-xs font-medium text-neutral-700">{fmtIDR(r.harga_grosir)}</p>
+                  <p className="text-[10px] text-green-600">+{fmtIDR(r.harga_grosir - r.harga_beli)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] uppercase tracking-wide text-neutral-400">Toko</p>
+                  <p className="text-xs font-medium text-neutral-700">{fmtIDR(r.harga_toko)}</p>
+                  <p className="text-[10px] text-green-600">+{fmtIDR(r.harga_toko - r.harga_beli)}</p>
+                </div>
+              </div>
+            </div>
+          )}
         />
       </Card>
 

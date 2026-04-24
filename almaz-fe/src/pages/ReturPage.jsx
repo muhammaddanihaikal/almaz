@@ -111,15 +111,11 @@ export default function ReturPage({
           dateRange?.start ? ` — ${fmtTanggal(dateRange.start)} s/d ${fmtTanggal(dateRange.end)}` : " — semua waktu"
         }${tokoFilter ? ` (${tokoFilter})` : ""}.`}
         action={
-          <div className="mt-4 flex w-full flex-col gap-2 sm:mt-0 sm:w-auto sm:flex-row sm:items-center">
-            <div className="flex w-full sm:w-auto [&>button]:w-full">
-              <DownloadButton onClick={handleDownload} disabled={!rows.length} />
-            </div>
-            <div className="flex w-full sm:w-auto [&>button]:w-full">
-              <PrimaryButton onClick={() => { setEditing(null); setMode("add"); }} icon={Plus}>
-                Input Retur
-              </PrimaryButton>
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <DownloadButton onClick={handleDownload} disabled={!rows.length} />
+            <PrimaryButton onClick={() => { setEditing(null); setMode("add"); }} icon={Plus}>
+              Input Retur
+            </PrimaryButton>
           </div>
         }
       />

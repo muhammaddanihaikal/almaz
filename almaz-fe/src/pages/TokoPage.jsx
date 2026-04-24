@@ -107,6 +107,26 @@ export default function TokoPage({ tokoList, distribusi, retur, onAdd, onUpdate,
           ]}
           rows={rows}
           empty="Belum ada toko."
+          mobileRender={(r) => (
+            <div className="space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-medium text-neutral-900">{r.nama}</p>
+                  <p className="text-xs capitalize text-neutral-500">{r.tipe_harga}</p>
+                  {r.alamat && <p className="mt-1 text-xs text-neutral-500">{r.alamat}</p>}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Toggle checked={r.aktif ?? true} onChange={() => onToggleAktif(r.id)} />
+                  <RowActions
+                    onEdit={() => { setEditing(r); setMode("edit"); }}
+                    onDelete={() => handleDelete(r)}
+                    deleteDisabled={isUsed(r.nama)}
+                    deleteTitle="Toko sudah digunakan di data distribusi/retur"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         />
       </Card>
 

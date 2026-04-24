@@ -79,6 +79,20 @@ export default function SalesPage({ salesList, distribusi, retur, onAdd, onUpdat
           ]}
           rows={rows}
           empty="Belum ada sales."
+          mobileRender={(r) => (
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-medium text-neutral-900">{r.nama}</p>
+              <div className="flex items-center gap-2 shrink-0">
+                <Toggle checked={r.aktif ?? true} onChange={() => onToggleAktif(r.id)} />
+                <RowActions
+                  onEdit={() => { setEditing(r); setMode("edit"); }}
+                  onDelete={() => handleDelete(r)}
+                  deleteDisabled={isUsed(r.nama)}
+                  deleteTitle="Sales sudah digunakan di data distribusi/retur"
+                />
+              </div>
+            </div>
+          )}
         />
       </Card>
 
