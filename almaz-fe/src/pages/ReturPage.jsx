@@ -50,26 +50,34 @@ export default function ReturPage({
 
   const handleDownload = () => {
     const label = dateRange?.start ? `${dateRange.start}_${dateRange.end}` : "semua-waktu";
-    const tLabel = tokoFilter ? `-${tokoFilter.replace(/\s+/g, '_').toLowerCase()}` : "";
-    const sLabel = salesFilter ? `-${salesFilter.replace(/\s+/g, '_').toLowerCase()}` : "";
+
+    let no = 0;
     const flat = rows.flatMap((r) =>
-      r.items.map((it) => ({
-        tanggal: r.tanggal,
-        toko: r.toko,
-        tipe_penjualan: r.tipe_penjualan || "",
-        sales: r.sales || "",
-        rokok: it.rokok,
-        qty: it.qty,
-        alasan: r.alasan || "",
-      }))
+      r.items.map((it) => {
+        no++;
+        return {
+          no,
+          tanggal: r.tanggal,
+          toko: r.toko || "—",
+          tipe_penjualan: r.tipe_penjualan || "",
+          sales: r.sales || "",
+          rokok: it.rokok,
+          qty: it.qty,
+          alasan: r.alasan || "",
+        };
+      })
     );
+
+    const totalQty = flat.reduce((s, r) => s + r.qty, 0);
     const periodeLabel = dateRange?.start
       ? `${fmtTanggal(dateRange.start)} s/d ${fmtTanggal(dateRange.end)}`
       : "Semua Waktu";
+
     downloadExcel(
       flat,
-      `retur${tLabel}${sLabel}-${label}`,
+      `retur-${label}`,
       [
+        { label: "No",             value: (r) => r.no },
         { label: "Tanggal",        value: (r) => r.tanggal },
         { label: "Toko",           value: (r) => r.toko },
         { label: "Tipe Penjualan", value: (r) => r.tipe_penjualan },
@@ -80,10 +88,9 @@ export default function ReturPage({
       ],
       [
         ["Laporan Retur"],
-        ["Periode", periodeLabel],
-        ["Filter Toko", tokoFilter || "Semua Toko"],
-        ["Filter Sales", salesFilter || "Semua Sales"],
+        ["Periode",         periodeLabel],
         ["Total Transaksi", `${rows.length} transaksi`],
+        ["Total Qty Retur", totalQty],
       ]
     );
   };
@@ -231,11 +238,6 @@ export default function ReturPage({
   );
 }
 
-const TIPE_PENJUALAN_OPTIONS = [
-  { value: "Toko",       label: "Toko" },
-  { value: "Grosir",     label: "Grosir" },
-  { value: "Perorangan", label: "Perorangan" },
-];
 const TIPE_COLOR = {
   Toko:       "bg-blue-100 text-blue-700",
   Grosir:     "bg-violet-100 text-violet-700",
@@ -316,13 +318,15 @@ function ReturDetail({ record }) {
   );
 }
 
+const RETUR_TIPE_MAP = { toko: "Toko", grosir: "Grosir", perorangan: "Perorangan" };
+
 function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit, onCancel }) {
   const today = new Date().toISOString().slice(0, 10);
-  const [tanggal, setTanggal]     = useState(initial?.tanggal || today);
-  const [toko, setToko]           = useState(initial?.toko || "");
-  const [tipe_penjualan, setTipe] = useState(initial?.tipe_penjualan || "");
-  const [sales, setSales]         = useState(initial?.sales || "");
-  const [alasan, setAlasan]       = useState(initial?.alasan || "");
+  const [tanggal, setTanggal]           = useState(initial?.tanggal || today);
+  const [isPerorangan, setIsPerorangan] = useState(initial?.tipe_penjualan === "Perorangan");
+  const [toko, setToko]                 = useState(initial?.tipe_penjualan === "Perorangan" ? "" : (initial?.toko || ""));
+  const [sales, setSales]               = useState(initial?.sales || "");
+  const [alasan, setAlasan]             = useState(initial?.alasan || "");
   const [items, setItems] = useState(
     initial
       ? initial.items.map((it) => ({ rokok: it.rokok, qty: it.qty }))
@@ -334,21 +338,21 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
   const updateItem = (idx, field, val) =>
     setItems(items.map((item, i) => (i === idx ? { ...item, [field]: val } : item)));
 
+  const tokoObj      = tokoList.find((x) => x.nama === toko);
+  const computedTipe = isPerorangan ? "Perorangan" : (tokoObj ? RETUR_TIPE_MAP[tokoObj.tipe_harga] || "" : "");
+
   const isDuplicate =
-    tanggal &&
-    toko &&
-    (existing || []).some(
-      (r) => r.tanggal === tanggal && r.toko === toko && r.id !== initial?.id
-    );
+    !isPerorangan && tanggal && toko &&
+    (existing || []).some((r) => r.tanggal === tanggal && r.toko === toko && r.id !== initial?.id);
 
   const validItems = items.filter((it) => it.rokok && Number(it.qty) > 0);
 
   const valid =
     !isDuplicate &&
     tanggal &&
-    toko &&
-    tipe_penjualan &&
-    sales &&
+    (isPerorangan || !!toko) &&
+    !!computedTipe &&
+    !!sales &&
     alasan.trim().length > 0 &&
     validItems.length > 0;
 
@@ -357,8 +361,8 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
     if (!valid) return;
     onSubmit({
       tanggal,
-      toko,
-      tipe_penjualan,
+      toko: isPerorangan ? "" : toko,
+      tipe_penjualan: computedTipe,
       sales,
       alasan: alasan.trim(),
       items: validItems.map((it) => ({ rokok: it.rokok, qty: Number(it.qty) })),
@@ -377,34 +381,38 @@ function ReturForm({ initial, existing, rokokList, tokoList, salesList, onSubmit
             required
           />
         </Field>
-        <Field label="Tipe Penjualan">
-          <SelectInput
-            value={tipe_penjualan}
-            onChange={(e) => setTipe(e.target.value)}
-            required
-          >
-            <option value="">Pilih tipe</option>
-            {TIPE_PENJUALAN_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </SelectInput>
-        </Field>
+        <div className="flex items-end pb-1">
+          <label className="flex cursor-pointer select-none items-center gap-2.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50">
+            <input
+              type="checkbox"
+              checked={isPerorangan}
+              onChange={(e) => { setIsPerorangan(e.target.checked); if (e.target.checked) setToko(""); }}
+              className="h-4 w-4 rounded border-neutral-300 accent-neutral-900"
+            />
+            Perorangan
+          </label>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Toko">
-          <SearchableSelect
-            value={toko}
-            onChange={(e) => setToko(e.target.value)}
-            placeholder="Pilih toko"
-            options={tokoList.filter((t) => t.aktif !== false).map((t) => ({ value: t.nama, label: t.nama }))}
-          />
-          {isDuplicate && (
-            <p className="mt-1 text-xs text-red-600">
-              Sudah ada retur untuk toko ini pada tanggal yang sama.
-            </p>
-          )}
-        </Field>
+        {!isPerorangan ? (
+          <Field label={<span className="flex items-center gap-2">Toko {tokoObj && <TipeBadge tipe={RETUR_TIPE_MAP[tokoObj.tipe_harga]} />}</span>}>
+            <SearchableSelect
+              value={toko}
+              onChange={(e) => setToko(e.target.value)}
+              placeholder="Pilih toko"
+              options={tokoList.filter((t) => t.aktif !== false).map((t) => ({ value: t.nama, label: t.nama }))}
+            />
+            {isDuplicate && (
+              <p className="mt-1 text-xs text-red-600">Sudah ada retur untuk toko ini pada tanggal yang sama.</p>
+            )}
+          </Field>
+        ) : (
+          <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+            <TipeBadge tipe="Perorangan" />
+            <span className="text-sm text-amber-700">Penjualan langsung</span>
+          </div>
+        )}
         <Field label="Sales">
           <SearchableSelect
             value={sales}

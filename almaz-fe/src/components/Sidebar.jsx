@@ -84,11 +84,16 @@ export default function Sidebar({ tab, onTabChange }) {
   const navItem = (id, label, Icon, depth = 0) => {
     const active = tab === id;
     return (
-      <button
+      <a
         key={id}
-        onClick={() => { onTabChange(id); setMobileOpen(false); }}
+        href={`#${id}`}
+        onClick={(e) => {
+          e.preventDefault();
+          onTabChange(id);
+          setMobileOpen(false);
+        }}
         className={
-          `flex w-full items-center gap-3 rounded-lg py-2.5 text-sm font-medium transition-colors ${
+          `flex w-full items-center gap-3 rounded-lg py-2.5 text-sm font-medium transition-colors cursor-pointer ${
             depth > 0 ? "pl-9 pr-3 lg:pl-3" : "px-3"
           } ` +
           (active
@@ -98,7 +103,7 @@ export default function Sidebar({ tab, onTabChange }) {
       >
         <Icon className={`h-4 w-4 shrink-0 ${active && depth > 0 ? 'text-white' : depth > 0 ? 'text-neutral-400' : ''}`} strokeWidth={2} />
         <span className={depth > 0 ? "inline" : "hidden lg:inline"}>{label}</span>
-      </button>
+      </a>
     );
   };
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ROKOK_AWAL, TOKO_AWAL, DISTRIBUSI_AWAL, RETUR_AWAL, SALES_AWAL, ABSENSI_AWAL } from "./data";
 import { newId } from "./utils";
 import Sidebar from "./components/Sidebar";
@@ -11,13 +11,29 @@ import SalesPage from "./pages/SalesPage";
 import AbsensiPage from "./pages/AbsensiPage";
 
 export default function App() {
-  const [tab, setTab] = useState("dashboard");
+  const [tab, setTab] = useState(() => {
+    const hash = window.location.hash.slice(1);
+    return hash || "dashboard";
+  });
   const [rokokList, setRokokList] = useState(ROKOK_AWAL);
   const [tokoList, setTokoList] = useState(TOKO_AWAL);
   const [salesList, setSalesList] = useState(SALES_AWAL);
   const [distribusi, setDistribusi] = useState(DISTRIBUSI_AWAL);
   const [retur, setRetur] = useState(RETUR_AWAL);
   const [absensiList, setAbsensiList] = useState(ABSENSI_AWAL);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1);
+      setTab(hash || "dashboard");
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  useEffect(() => {
+    window.location.hash = tab;
+  }, [tab]);
 
   // Adjust stok: distribusi decreases (sign=-1), retur increases (sign=+1)
   const syncStok = (prevItems, nextItems, sign) => {
