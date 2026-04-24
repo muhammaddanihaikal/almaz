@@ -101,12 +101,29 @@ const buildSheet = (rows, columns, meta = [], options = {}) => {
   }
   ws["!cols"] = colWidths;
 
-  if (options.centered && ws["!ref"]) {
+  if (ws["!ref"]) {
     const range = XLSX.utils.decode_range(ws["!ref"]);
+    // Row index calculations (0-based):
+    // meta rows: 0 .. meta.length-1
+    // empty separator: meta.length        (only when meta exists)
+    // header row: meta.length + (meta.length > 0 ? 1 : 0)
+    // data rows start: header row + 1
+    const headerRowIdx = meta.length > 0 ? meta.length + 1 : 0;
+    const dataRowStart = headerRowIdx + 1;
+
     for (let R = range.s.r; R <= range.e.r; R++) {
       for (let C = range.s.c; C <= range.e.c; C++) {
         const addr = XLSX.utils.encode_cell({ r: R, c: C });
-        if (ws[addr]) ws[addr].s = { alignment: { horizontal: "center", vertical: "center" } };
+        if (!ws[addr]) continue;
+
+        if (options.centered) {
+          // Center everything
+          ws[addr].s = { alignment: { horizontal: "center", vertical: "center", wrapText: true } };
+        } else if (options.centerData && R >= dataRowStart) {
+          // Center + middle only for data rows
+          ws[addr].s = { alignment: { horizontal: "center", vertical: "center", wrapText: true } };
+        }
+        // Meta rows: left-aligned by default (no explicit style needed)
       }
     }
   }
@@ -115,9 +132,9 @@ const buildSheet = (rows, columns, meta = [], options = {}) => {
 };
 
 // Single-sheet download
-export const downloadExcel = (rows, filename, columns, meta = []) => {
+export const downloadExcel = (rows, filename, columns, meta = [], options = {}) => {
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, buildSheet(rows, columns, meta), "Data");
+  XLSX.utils.book_append_sheet(wb, buildSheet(rows, columns, meta, options), "Data");
   XLSX.writeFile(wb, filename.endsWith(".xlsx") ? filename : filename + ".xlsx");
 };
 

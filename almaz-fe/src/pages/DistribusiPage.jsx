@@ -7,7 +7,7 @@ import {
   defaultDateRange,
   sortByDateDesc,
   hitungProfit,
-  downloadExcelMultiSheet,
+  downloadExcel,
   getRokok,
 } from "../utils";
 import { PAGE_SIZE } from "../data";
@@ -54,7 +54,6 @@ export default function DistribusiPage({
   const handleDownload = () => {
     const label = dateRange?.start ? `${dateRange.start}_${dateRange.end}` : "semua-waktu";
 
-    // Detail rows with global row number
     let no = 0;
     const flat = rows.flatMap((d) =>
       d.items.map((it) => {
@@ -76,23 +75,6 @@ export default function DistribusiPage({
       })
     );
 
-    // Summary per tanggal with per-rokok breakdown
-    const allRokok = [...new Set(rows.flatMap((d) => d.items.map((it) => it.rokok)))].sort((a, b) => a.localeCompare(b, "id"));
-    const summaryMap = {};
-    rows.forEach((d) => {
-      if (!summaryMap[d.tanggal]) {
-        summaryMap[d.tanggal] = { tanggal: d.tanggal, transaksi: 0, total_qty: 0, total_revenue: 0 };
-        allRokok.forEach((nama) => { summaryMap[d.tanggal][nama] = 0; });
-      }
-      summaryMap[d.tanggal].transaksi++;
-      d.items.forEach((it) => {
-        summaryMap[d.tanggal].total_qty += it.qty;
-        summaryMap[d.tanggal].total_revenue += it.qty * it.harga;
-        summaryMap[d.tanggal][it.rokok] = (summaryMap[d.tanggal][it.rokok] || 0) + it.qty;
-      });
-    });
-    const summaryRows = sortByDateDesc(Object.values(summaryMap));
-
     const totalQty     = flat.reduce((s, r) => s + r.qty, 0);
     const totalRevenue = flat.reduce((s, r) => s + r.total, 0);
 
@@ -101,49 +83,32 @@ export default function DistribusiPage({
       : "Semua Waktu";
 
     const meta = [
-      ["Laporan Distribusi"],
-      ["Periode",            periodeLabel],
-      ["Total Transaksi",    `${rows.length} transaksi`],
-      ["Total Qty Terjual",  totalQty],
-      ["Total Pendapatan",   fmtIDR(totalRevenue)],
+      ["Laporan Penjualan"],
+      ["Periode",           periodeLabel],
+      ["Total Qty Terjual", totalQty],
+      ["Total Transaksi",   `${rows.length} transaksi`],
+      ["Total Pendapatan",  fmtIDR(totalRevenue)],
     ];
 
-    downloadExcelMultiSheet(
+    downloadExcel(
+      flat,
+      `distribusi-${label}`,
       [
-        {
-          name: "Ringkasan",
-          rows: summaryRows,
-          columns: [
-            { label: "No",               value: (_, i) => i + 1 },
-            { label: "Tanggal",          value: (r) => r.tanggal },
-            { label: "Transaksi",        value: (r) => r.transaksi },
-            ...allRokok.map((nama) => ({ label: nama, value: (r) => r[nama] || 0 })),
-            { label: "Total Qty",        value: (r) => r.total_qty },
-            { label: "Total Pendapatan", value: (r) => fmtIDR(r.total_revenue) },
-          ],
-          meta,
-          centered: true,
-        },
-        {
-          name: "Detail",
-          rows: flat,
-          columns: [
-            { label: "No",             value: (r) => r.no },
-            { label: "Tanggal",        value: (r) => r.tanggal },
-            { label: "Toko",           value: (r) => r.toko },
-            { label: "Tipe Penjualan", value: (r) => r.tipe_penjualan },
-            { label: "Sales",          value: (r) => r.sales },
-            { label: "Pembayaran",     value: (r) => r.pembayaran },
-            { label: "Tgl Tempo",      value: (r) => r.tanggal_bayar },
-            { label: "Rokok",          value: (r) => r.rokok },
-            { label: "Qty",            value: (r) => r.qty },
-            { label: "Harga Satuan",   value: (r) => r.harga },
-            { label: "Total",          value: (r) => r.total },
-            { label: "Profit",         value: (r) => r.profit },
-          ],
-        },
+        { label: "No",             value: (r) => r.no },
+        { label: "Tanggal",        value: (r) => r.tanggal },
+        { label: "Toko",           value: (r) => r.toko },
+        { label: "Tipe Penjualan", value: (r) => r.tipe_penjualan },
+        { label: "Sales",          value: (r) => r.sales },
+        { label: "Pembayaran",     value: (r) => r.pembayaran },
+        { label: "Tgl Tempo",      value: (r) => r.tanggal_bayar },
+        { label: "Rokok",          value: (r) => r.rokok },
+        { label: "Qty",            value: (r) => r.qty },
+        { label: "Harga Satuan",   value: (r) => r.harga },
+        { label: "Total",          value: (r) => r.total },
+        { label: "Profit",         value: (r) => r.profit },
       ],
-      `distribusi-${label}`
+      meta,
+      { centerData: true }
     );
   };
 
